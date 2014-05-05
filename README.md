@@ -1,5 +1,7 @@
 # Storage
 
+[![Build Status](https://travis-ci.org/kirs/storage.svg?branch=master)](https://travis-ci.org/kirs/storage)
+
 TODO: Write a gem description
 
 ## Installation
