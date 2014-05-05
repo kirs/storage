@@ -1,3 +1,5 @@
+require 'zaru'
+
 class Storage::Model
   DEFAULT_VERSION_NAME = :original
 
@@ -161,7 +163,7 @@ class Storage::Model
 
   def extract_basename_from(url)
     @extension = File.extname(url)
-    @basename = File.basename(url, @extension).parameterize
+    @basename = Zaru.new(File.basename(url, @extension)).sanitize
     "#{@basename}#{@extension}"
   end
 end
