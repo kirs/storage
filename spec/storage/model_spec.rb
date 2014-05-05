@@ -112,9 +112,9 @@ describe Storage::Model do
       it "works" do
         post = Post.create!
 
-        stub_request(:put, "https://ebay-social.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
-        stub_request(:put, "https://ebay-social.s3.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
-        stub_request(:put, "https://ebay-social.s3.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
+        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
 
         expect(post.cover_image.present?).to eq false
 
