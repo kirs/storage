@@ -14,7 +14,7 @@ DatabaseCleaner.strategy = :transaction
 
 I18n.enforce_available_locales
 
-def public_path( *paths )
+def public_path(*paths)
   File.expand_path(File.join(File.dirname(__FILE__), 'public', *paths))
 end
 
@@ -26,7 +26,6 @@ Storage.setup do |config|
   }
   config.storage_path = Pathname.new(public_path)
 end
-
 
 RSpec.configure do |config|
   config.expect_with :rspec do |c|
