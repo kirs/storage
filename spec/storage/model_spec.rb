@@ -75,10 +75,10 @@ describe Storage::Model do
     let(:dumb_path) {
       File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg")
     }
+    let(:image_url) { "http://putin.vor/1.jpg" }
 
     context "local upload" do
       context "valid filename" do
-        let(:image_url) { "http://putin.vor/1.jpg" }
         before do
           stub_request(:any, image_url).
             to_return(body: File.new(dumb_path), status: 200)
@@ -138,6 +138,9 @@ describe Storage::Model do
     context "remote upload" do
       before do
         allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+
+        stub_request(:any, image_url).
+          to_return(body: File.new(dumb_path), status: 200)
       end
 
       it "works" do
