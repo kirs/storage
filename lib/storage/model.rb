@@ -162,8 +162,10 @@ class Storage::Model
   end
 
   def extract_basename_from(url)
-    @extension = File.extname(url)
-    @basename = Zaru.new(File.basename(url, @extension)).sanitize
-    "#{@basename}#{@extension}"
+    uri = URI.parse(url)
+    filename = uri.path
+    @extension = File.extname(filename)
+    @basename = Zaru.new(File.basename(filename, @extension)).sanitize
+    "#{@basename}#{@extension}".downcase
   end
 end

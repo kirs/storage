@@ -72,34 +72,65 @@ describe Storage::Model do
   end
 
   describe "#download" do
-    let(:image_url) { "http://putin.vor/1.jpg" }
     let(:dumb_path) {
       File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg")
     }
 
-    before do
-      stub_request(:any, image_url).
-        to_return(body: File.new(dumb_path), status: 200)
-
-      allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
-    end
-
     context "local upload" do
-      it "works" do
-        post = Post.create!
-        expect(post.cover_image.present?).to eq false
+      context "valid filename" do
+        let(:image_url) { "http://putin.vor/1.jpg" }
+        before do
+          stub_request(:any, image_url).
+            to_return(body: File.new(dumb_path), status: 200)
 
-        post.cover_image.download(image_url)
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+        end
 
-        expect(post[:cover_image]).to eq '1.jpg'
+        it "works" do
+          post = Post.create!
+          expect(post.cover_image.present?).to eq false
 
-        expect(post.cover_image.present?).to eq true
+          post.cover_image.download(image_url)
 
-        expect(post.cover_image.local_path.exist?).to eq true
+          expect(post[:cover_image]).to eq '1.jpg'
 
-        OneMoreStorage.versions.each do |version, options|
-          version_path = post.cover_image.local_path_for(version)
-          expect(version_path.exist?).to eq true
+          expect(post.cover_image.present?).to eq true
+
+          expect(post.cover_image.local_path.exist?).to eq true
+
+          OneMoreStorage.versions.each do |version, options|
+            version_path = post.cover_image.local_path_for(version)
+            expect(version_path.exist?).to eq true
+          end
+        end
+      end
+
+      context "valid filename" do
+        let(:image_url) { "http://i.ebayimg.com/00/s/MTYwMFgxNTQz/z/7LMAAMXQCgpRs1kq/$(KGrHqRHJ!4FBQ!sVjWMBRs1kp8-Lg~~60_1.JPG?set_id=8800005007" }
+
+        before do
+          stub_request(:any, "http://i.ebayimg.com/00/s/MTYwMFgxNTQz/z/7LMAAMXQCgpRs1kq/$(KGrHqRHJ!4FBQ!sVjWMBRs1kp8-Lg~~60_1.JPG").
+            to_return(body: File.new(dumb_path), status: 200)
+
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+        end
+
+        it "works" do
+          post = Post.create!
+          expect(post.cover_image.present?).to eq false
+
+          post.cover_image.download(image_url)
+
+          expect(post[:cover_image]).to eq "$(kgrhqrhj!4fbq!svjwmbrs1kp8-lg~~60_1.jpg"
+
+          expect(post.cover_image.present?).to eq true
+
+          expect(post.cover_image.local_path.exist?).to eq true
+
+          OneMoreStorage.versions.each do |version, options|
+            version_path = post.cover_image.local_path_for(version)
+            expect(version_path.exist?).to eq true
+          end
         end
       end
     end
