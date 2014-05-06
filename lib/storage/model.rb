@@ -23,7 +23,7 @@ class Storage::Model
 
   def remote_storage_enabled?
     if defined?(Rails)
-      Rails.env.production?
+      !(Rails.env.development? || Rails.env.test?)
     else
       false
     end
