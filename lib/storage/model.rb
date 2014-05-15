@@ -149,11 +149,9 @@ class Storage::Model
       raise ArgumentError.new("empty path in #{url}")
     end
 
-    Net::HTTP.start(uri.host) do |http|
-      http.request_get(uri.path) do |response|
-        response.read_body do |segment|
-          target.write(segment)
-        end
+    Net::HTTP.get_response(uri) do |response|
+      response.read_body do |segment|
+        target.write(segment)
       end
     end
 

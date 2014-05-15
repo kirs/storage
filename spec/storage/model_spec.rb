@@ -109,7 +109,7 @@ describe Storage::Model do
         let(:image_url) { "http://i.ebayimg.com/00/s/MTYwMFgxNTQz/z/7LMAAMXQCgpRs1kq/$(KGrHqRHJ!4FBQ!sVjWMBRs1kp8-Lg~~60_1.JPG?set_id=8800005007" }
 
         before do
-          stub_request(:any, "http://i.ebayimg.com/00/s/MTYwMFgxNTQz/z/7LMAAMXQCgpRs1kq/$(KGrHqRHJ!4FBQ!sVjWMBRs1kp8-Lg~~60_1.JPG").
+          stub_request(:get, image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
           allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
