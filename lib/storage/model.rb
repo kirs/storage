@@ -30,6 +30,13 @@ class Storage::Model
   end
 
   def download(original_url)
+    # remove previous
+    if present?
+      self.class.versions.each do |version_name, _|
+        remove_local_copy(version_name)
+      end
+    end
+
     digest = Digest::MD5.hexdigest(original_url)
     target = Tempfile.new(digest, encoding: 'binary')
 

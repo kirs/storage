@@ -133,6 +133,37 @@ describe Storage::Model do
           end
         end
       end
+
+      context "already downloaded" do
+        let(:another_image_url) { "http://i.ebayimg.com/something_else.jpg" }
+
+        before do
+          stub_request(:any, image_url).
+            to_return(body: File.new(dumb_path), status: 200)
+
+          stub_request(:any, another_image_url).
+            to_return(body: File.new(dumb_path), status: 200)
+
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+        end
+
+        it "removes old picture" do
+          post = Post.create!
+          expect(post.cover_image.present?).to eq false
+
+          post.cover_image.download(image_url)
+
+          expect(post.cover_image.present?).to eq true
+
+          old_local_path = post.cover_image.local_path
+          expect(old_local_path.exist?).to eq true
+
+          post.cover_image.download(another_image_url)
+          expect(post.cover_image.present?).to eq true
+
+          expect(old_local_path.exist?).to eq false
+        end
+      end
     end
 
     context "remote upload" do
