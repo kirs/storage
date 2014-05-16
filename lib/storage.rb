@@ -9,6 +9,14 @@ module Storage
     def setup
       yield self
     end
+
+    def extract_basename(url)
+      uri = URI.parse(url)
+      filename = uri.path
+      @extension = File.extname(filename)
+      @basename = Zaru.new(File.basename(filename, @extension)).sanitize
+      "#{@basename}#{@extension}".downcase
+    end
   end
 end
 

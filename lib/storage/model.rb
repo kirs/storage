@@ -33,7 +33,7 @@ class Storage::Model
     digest = Digest::MD5.hexdigest(original_url)
     target = Tempfile.new(digest, encoding: 'binary')
 
-    @basename = extract_basename_from(original_url)
+    @basename = Storage.extract_basename(original_url)
 
     download_original(original_url, target)
 
@@ -157,13 +157,5 @@ class Storage::Model
 
   ensure
     target.close
-  end
-
-  def extract_basename_from(url)
-    uri = URI.parse(url)
-    filename = uri.path
-    @extension = File.extname(filename)
-    @basename = Zaru.new(File.basename(filename, @extension)).sanitize
-    "#{@basename}#{@extension}".downcase
   end
 end
