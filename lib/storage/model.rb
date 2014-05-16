@@ -90,6 +90,10 @@ class Storage::Model
     url.present?
   end
 
+  def blank?
+    !present?
+  end
+
   private
 
   def process_locally
