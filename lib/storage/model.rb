@@ -115,7 +115,10 @@ class Storage::Model
   end
 
   def remove_local_copy(version_name)
-    FileUtils.rm local_path_for(version_name)
+    path = local_path_for(version_name)
+    return unless path.exist?
+
+    FileUtils.rm path
     FileUtils.rmdir Storage.storage_path.join(model_uploads_path)
   end
 
