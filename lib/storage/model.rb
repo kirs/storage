@@ -105,6 +105,19 @@ class Storage::Model
     !present?
   end
 
+  def as_json
+    if present?
+      result = {}
+      self.class.versions.each do |version_name, _|
+        result[version_name] = url(version_name)
+      end
+
+      result
+    else
+      nil
+    end
+  end
+
   private
 
   def process_locally

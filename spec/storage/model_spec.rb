@@ -219,7 +219,6 @@ describe Storage::Model do
   end
 
   describe "#url" do
-
     let(:filename) { '1.jpg' }
 
     context "local upload" do
@@ -236,6 +235,32 @@ describe Storage::Model do
         post = Post.create!(cover_image: filename)
         expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
         expect(post.cover_image.url(:big)).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
+      end
+    end
+  end
+
+  describe "#as_json" do
+    let(:filename) { '1.jpg' }
+
+    context "file present" do
+      it "works" do
+        post = Post.create!(cover_image: filename)
+
+        urls = {
+          original: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
+          thumb: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/thumb/1.jpg",
+          big: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/big/1.jpg"
+        }
+
+        expect(post.cover_image.as_json).to eq urls
+      end
+    end
+
+    context "file absent" do
+      it "works" do
+        post = Post.create!
+
+        expect(post.cover_image.as_json).to eq nil
       end
     end
   end
