@@ -26,6 +26,7 @@ if defined?(Rails)
     class Railtie < Rails::Railtie
       initializer "storage.setup_paths" do
         Storage.storage_path = Rails.root.join(Rails.public_path)
+        Storage.bucket_name = Rails.application.engine_name
       end
 
       # initializer "carrierwave.active_record" do
