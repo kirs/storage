@@ -37,7 +37,7 @@ class Storage::Remote
 
   def bucket_name
     @bucket_name ||= begin
-      env_name = Storage.bucket_name
+      env_name = Storage.bucket_name.dup
       env_name << "-#{Rails.env}" if defined?(Rails)
       env_name
     end
