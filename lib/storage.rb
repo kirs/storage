@@ -5,6 +5,7 @@ module Storage
   class << self
     attr_accessor :storage_path
     attr_accessor :s3_credentials
+    attr_accessor :bucket_name
 
     def setup
       yield self

@@ -12,6 +12,13 @@ class Storage::Remote
     end
   end
 
+  def remove_file(remote_key)
+    remote_target = amazon_bucket.objects[remote_key]
+    if remote_target.exists?
+      remote_target.delete
+    end
+  end
+
   def url_for(filename)
     "http://#{bucket_name}.s3.amazonaws.com/#{filename}"
   end
@@ -30,7 +37,7 @@ class Storage::Remote
 
   def bucket_name
     @bucket_name ||= begin
-      env_name = "ebay-social"
+      env_name = Storage.bucket_name
       env_name << "-#{Rails.env}" if defined?(Rails)
       env_name
     end

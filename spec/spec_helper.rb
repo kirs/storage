@@ -25,6 +25,7 @@ Storage.setup do |config|
     region: 'eu-west-1'
   }
   config.storage_path = Pathname.new(public_path)
+  config.bucket_name = 'teamnavalny'
 end
 
 RSpec.configure do |config|

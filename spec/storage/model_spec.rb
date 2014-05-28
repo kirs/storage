@@ -45,7 +45,7 @@ describe Storage::Model do
     end
 
     it "works" do
-      expect(@original_storage_path).to be_present#eq Rails.root.join("public")
+      expect(@original_storage_path).to be_present
 
       somewhere_else = File.join("tmp", "somewhere", "else")
       Storage.storage_path = somewhere_else
@@ -177,9 +177,9 @@ describe Storage::Model do
       it "works" do
         post = Post.create!
 
-        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
-        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
-        stub_request(:put, "https://ebay-social.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+        stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
+        stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
 
         expect(post.cover_image.present?).to eq false
 
@@ -190,7 +190,30 @@ describe Storage::Model do
         expect(post[:cover_image]).to eq '1.jpg'
         expect(post.cover_image.present?).to eq true
 
-        expect(post.cover_image.url).to eq "http://ebay-social.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
+        expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
+      end
+
+      describe "remove" do
+        let(:post) { Post.create!(cover_image: '1.jpg') }
+        before do
+          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
+          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(status: 200)
+          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(status: 200)
+        end
+
+        it "can be removed" do
+          expect(post.cover_image.present?).to eq true
+
+          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
+          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+
+          post.cover_image.remove
+
+          expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/1/original/1.jpg")).to have_been_made.once
+
+          expect(post.cover_image.present?).to eq false
+        end
       end
     end
   end
@@ -210,10 +233,9 @@ describe Storage::Model do
 
     context "remote upload" do
       it "works" do
-        bucket_name = "ebay-social"
         post = Post.create!(cover_image: filename)
-        expect(post.cover_image.url).to eq "http://#{bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
-        expect(post.cover_image.url(:big)).to eq "http://#{bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
+        expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
+        expect(post.cover_image.url(:big)).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
       end
     end
   end

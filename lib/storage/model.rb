@@ -29,12 +29,23 @@ class Storage::Model
     end
   end
 
+  def remove
+    self.class.versions.each do |version_name, _|
+      remove_local_copy(version_name)
+
+      if remote_storage_enabled?
+        remove_remote_copy(version_name)
+      end
+    end
+
+    @basename = nil
+    update_model
+  end
+
   def download(original_url)
     # remove previous
     if present?
-      self.class.versions.each do |version_name, _|
-        remove_local_copy(version_name)
-      end
+      remove
     end
 
     digest = Digest::MD5.hexdigest(original_url)
@@ -116,10 +127,15 @@ class Storage::Model
 
   def remove_local_copy(version_name)
     path = local_path_for(version_name)
-    return unless path.exist?
 
-    FileUtils.rm path
-    FileUtils.rmdir Storage.storage_path.join(model_uploads_path)
+    if path.exist?
+      FileUtils.rm path
+      FileUtils.rmdir Storage.storage_path.join(model_uploads_path)
+    end
+  end
+
+  def remove_remote_copy(version_name)
+    remote.remove_file(remote_key_for(version_name))
   end
 
   def update_model
