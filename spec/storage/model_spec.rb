@@ -113,6 +113,8 @@ describe Storage::Model do
             to_return(body: File.new(dumb_path), status: 200)
 
           allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+
+          allow(Storage).to receive(:extract_basename).and_return("1.jpg")
         end
 
         it "works" do
@@ -121,7 +123,7 @@ describe Storage::Model do
 
           post.cover_image.download(image_url)
 
-          expect(post[:cover_image]).to eq "$(kgrhqrhj!4fbq!svjwmbrs1kp8-lg~~60_1.jpg"
+          expect(post[:cover_image]).to eq "1.jpg"
 
           expect(post.cover_image.present?).to eq true
 
