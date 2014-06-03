@@ -16,9 +16,9 @@ module Storage
       filename = uri.path
       @extension = File.extname(filename)
       @basename = Zaru.new(File.basename(filename, @extension)).sanitize
-      @basename = @basename.gsub("~", "")
-      @basename = @basename.gsub(",", "")
-      @basename = @basename.gsub("+", "")
+      ["~", ",", "+"].each do |symb|
+        @basename = @basename.gsub(symb, "")
+      end
       "#{@basename}#{@extension}".downcase
     end
   end
