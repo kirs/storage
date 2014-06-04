@@ -55,10 +55,10 @@ class Storage::Model
 
     @basename = Storage.extract_basename(original_url)
 
-    download_original(original_url, target)
+    Storage.download(original_url, target)
 
     save_locally(target)
-    process_locally
+    reprocess
 
     if remote_storage_enabled?
       transfer_to_remote
@@ -66,7 +66,7 @@ class Storage::Model
 
     update_model!
   ensure
-    target.unlink if target.present?
+    target.try(:unlink)
   end
 
   def transfer_to_remote
@@ -106,23 +106,8 @@ class Storage::Model
   end
 
   def reprocess
-    @versions.each do |version_name, version_object|
-      next if version_object.options.blank?
-
-      current_path = version_object.local_path
-      if current_path.exist?
-        process_version(version_object, current_path.to_s)
-      else
-        begin
-          url = url(version_name)
-          tmpfile = Tempfile.new(url.parameterize)
-          download_original(url, tmpfile)
-          process_version(version_object, tmpfile.path)
-          remote.transfer_from(tmpfile.path, version_object.remote_key)
-        ensure
-          tmpfile.try(:unlink)
-        end
-      end
+    @versions.values.each do |version|
+      version.process
     end
   end
 
@@ -135,24 +120,6 @@ class Storage::Model
   end
 
   private
-
-  def process_locally
-    @versions.each do |version_name, version_object|
-      next if version_object.options.blank?
-
-      current_path = version_object.local_path
-      process_version(version_object, current_path.to_s)
-    end
-  end
-
-  def process_version(version_object, path)
-    image = ::MiniMagick::Image.open(path)
-
-    if version_object.options[:resize].present?
-      image.resize(version_object.options[:resize])
-    end
-    image.write(path)
-  end
 
   def local_copy_exists?
     local_path.exist?
@@ -174,22 +141,5 @@ class Storage::Model
     end
 
     FileUtils.chmod 0644, targets
-  end
-
-  def download_original(url, target)
-    uri = URI::parse(url)
-
-    if uri.path.blank?
-      raise ArgumentError.new("empty path in #{url}")
-    end
-
-    Net::HTTP.get_response(uri) do |response|
-      response.read_body do |segment|
-        target.write(segment)
-      end
-    end
-
-  ensure
-    target.close
   end
 end

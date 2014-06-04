@@ -23,6 +23,23 @@ module Storage
       end
       "#{@basename}#{@extension}".downcase
     end
+
+    def download(url, target)
+      uri = URI::parse(url)
+
+      if uri.path.blank?
+        raise ArgumentError.new("empty path in #{url}")
+      end
+
+      Net::HTTP.get_response(uri) do |response|
+        response.read_body do |segment|
+          target.write(segment)
+        end
+      end
+
+    ensure
+      target.close
+    end
   end
 end
 
