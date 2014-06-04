@@ -1,4 +1,4 @@
-class Storage::OptsValidator
+class Storage::Version::OptsValidator
   class BadOptionError < StandardError
   end
 

@@ -62,8 +62,8 @@ if defined?(Rails)
 end
 
 require "storage/model"
-require "storage/opts_validator"
 require "storage/remote"
 require "storage/version"
+require "storage/version/opts_validator"
 require "storage/version_storage"
 require "storage/versions_resolver"

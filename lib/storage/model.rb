@@ -8,15 +8,13 @@ class Storage::Model
   attr_reader :versions
 
   def self.version(name, options = {})
-    Storage::OptsValidator.new(options).validate
-
-    self.versions ||= {}
-    self.versions[name] = Storage::Version.new(name, options)
+    self.versions ||= []
+    self.versions << Storage::Version.new(name, options)
   end
 
   def initialize(model, field_name)
     unless model.persisted?
-      raise ArgumentError.new("model #{model} has no id yet")
+      raise ArgumentError.new("model #{model} is not persisted")
     end
 
     @field_name = field_name.to_sym

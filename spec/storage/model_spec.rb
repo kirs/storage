@@ -193,34 +193,47 @@ describe Storage::Model do
 
         expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
       end
+    end
+  end
 
-      describe "remove" do
-        let(:post) { Post.create!(cover_image: '1.jpg') }
-        before do
-          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
-          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(status: 200)
-          stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(status: 200)
-        end
+  describe "#remove" do
+    let(:post) { Post.create!(cover_image: '1.jpg') }
 
-        it "can be removed" do
-          expect(post.cover_image.present?).to eq true
+    context "remote upload" do
+      before do
+        allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
 
-          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
-          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
-          stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+        stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
+        stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(status: 200)
+        stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(status: 200)
+      end
 
-          post.cover_image.remove
+      it "can be removed" do
+        expect(post.cover_image.present?).to eq true
 
-          expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/1/original/1.jpg")).to have_been_made.once
+        stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
+        stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
 
-          expect(post.cover_image.present?).to eq false
-        end
+        post.cover_image.remove
+
+        expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/1/original/1.jpg")).to have_been_made.once
+
+        expect(post.cover_image.present?).to eq false
+        expect(post.cover_image.url).to eq nil
       end
     end
   end
 
   describe "#url" do
     let(:filename) { '1.jpg' }
+
+    context "without upload" do
+      it "returns nil" do
+        post = Post.create!
+        expect(post.cover_image.url).to eq nil
+      end
+    end
 
     context "not existing version" do
       it "throws exception" do
@@ -308,7 +321,7 @@ describe Storage::Model do
   end
 
   describe "#versions" do
-    it "present" do
+    it "are present" do
       post = Post.create!(cover_image: '1.jpg')
       versions = post.cover_image.versions
       expect(versions).to be_present

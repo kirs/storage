@@ -2,8 +2,8 @@ class Storage::VersionsResolver
   attr_reader :versions
 
   def initialize(storage_model, versions)
-    @versions = Hash[versions.map { |k, v|
-      [k, Storage::VersionStorage.new(v,storage_model)]
+    @versions = Hash[versions.map { |v|
+      [v.name, Storage::VersionStorage.new(v, storage_model)]
     }]
   end
 
