@@ -7,17 +7,19 @@ class Storage::VersionsResolver
     }]
   end
 
-  def [](val)
-    val = val.to_sym
-    if @versions.has_key?(val)
-      @versions[val]
+  def [](version_name)
+    version_name = version_name.to_sym
+    if @versions.has_key?(version_name)
+      @versions[version_name]
     else
       raise Storage::VersionNotExists
     end
   end
 
   def method_missing(method_sym, *arguments, &block)
-    if @versions.respond_to?(method_sym)
+    if @versions.has_key?(method_sym)
+      @versions[method_sym]
+    elsif @versions.respond_to?(method_sym)
       @versions.send(method_sym, *arguments, &block)
     else
       super
