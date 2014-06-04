@@ -1,6 +1,7 @@
 # Storage
 
 [![Build Status](https://travis-ci.org/kirs/storage.svg?branch=master)](https://travis-ci.org/kirs/storage)
+[![Code Climate](https://codeclimate.com/github/kirs/storage.png)](https://codeclimate.com/github/kirs/storage)
 
 TODO: Write a gem description
 
