@@ -13,6 +13,10 @@ class Post < ActiveRecord::Base
 end
 
 describe Storage::Model do
+  let(:dumb_path) {
+    File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg")
+  }
+
   before do
     cleanup_post_uploads
   end
@@ -72,9 +76,6 @@ describe Storage::Model do
   end
 
   describe "#download" do
-    let(:dumb_path) {
-      File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg")
-    }
     let(:image_url) { "http://putin.vor/1.jpg" }
 
     context "local upload" do
@@ -98,9 +99,8 @@ describe Storage::Model do
 
           expect(post.cover_image.local_path.exist?).to eq true
 
-          OneMoreStorage.versions.each do |version, options|
-            version_path = post.cover_image.local_path_for(version)
-            expect(version_path.exist?).to eq true
+          post.cover_image.versions.each do |_, version|
+            expect(version.local_path.exist?).to eq true
           end
         end
       end
@@ -129,9 +129,8 @@ describe Storage::Model do
 
           expect(post.cover_image.local_path.exist?).to eq true
 
-          OneMoreStorage.versions.each do |version, options|
-            version_path = post.cover_image.local_path_for(version)
-            expect(version_path.exist?).to eq true
+          post.cover_image.versions.each do |_, version|
+            expect(version.local_path.exist?).to eq true
           end
         end
       end
@@ -223,11 +222,21 @@ describe Storage::Model do
   describe "#url" do
     let(:filename) { '1.jpg' }
 
+    context "not existing version" do
+      it "throws exception" do
+        post = Post.create!(cover_image: filename)
+
+        expect {
+          post.cover_image.url(:somewhat)
+        }.to raise_error(Storage::VersionNotExists)
+      end
+    end
+
     context "local upload" do
       it "works" do
         post = Post.create!(cover_image: filename)
 
-        allow(post.cover_image).to receive(:local_copy_exists?).and_return(true)
+        allow(post.cover_image.versions[:original]).to receive(:local_copy_exists?).and_return(true)
         expect(post.cover_image.url).to eq "/uploads/post/#{post.id}/original/#{filename}"
       end
     end
@@ -264,6 +273,49 @@ describe Storage::Model do
 
         expect(post.cover_image.as_json).to eq nil
       end
+    end
+  end
+
+  describe "#reprocess" do
+    let(:image_url) { "http://putin.vor/1.jpg" }
+
+    context "with remote storage" do
+      before do
+        allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+
+        stub_request(:any, image_url).
+          to_return(body: File.new(dumb_path), status: 200)
+      end
+
+      it "works" do
+        post = Post.create!(cover_image: '1.jpg')
+
+        expect(post.cover_image.present?).to eq true
+
+        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(body: File.new(dumb_path), status: 200)
+        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(body: File.new(dumb_path), status: 200)
+        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(body: File.new(dumb_path), status: 200)
+
+        put_thumb = stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        put_big = stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+
+        post.cover_image.reprocess
+
+        expect(put_thumb).to have_been_made.times(1)
+        expect(put_big).to have_been_made.times(1)
+      end
+    end
+  end
+
+  describe "#versions" do
+    it "present" do
+      post = Post.create!(cover_image: '1.jpg')
+      versions = post.cover_image.versions
+      expect(versions).to be_present
+
+      expect(versions[:original]).to be_instance_of(Storage::VersionStorage)
+      expect(versions[:big]).to be_instance_of(Storage::VersionStorage)
+      expect(versions[:thumb]).to be_instance_of(Storage::VersionStorage)
     end
   end
 

@@ -5,6 +5,8 @@ class Storage::Model
 
   class_attribute :versions, instance_accessor: false
 
+  attr_reader :versions
+
   def self.version(name, options = {})
     Storage::OptsValidator.new(options).validate
 
@@ -19,6 +21,7 @@ class Storage::Model
 
     @field_name = field_name.to_sym
     @model = model
+    @versions = Storage::VersionsResolver.new(self, self.class.versions)
   end
 
   def remote_storage_enabled?
@@ -30,20 +33,19 @@ class Storage::Model
   end
 
   def remove
-    self.class.versions.each do |version_name, _|
-      remove_local_copy(version_name)
+    @versions.each do |version_name, version_object|
+      version_object.remove_local_copy
 
       if remote_storage_enabled?
-        remove_remote_copy(version_name)
+        version_object.remove_remote_copy
       end
     end
 
     @basename = nil
-    update_model
+    update_model!
   end
 
   def download(original_url)
-    # remove previous
     if present?
       remove
     end
@@ -62,39 +64,27 @@ class Storage::Model
       transfer_to_remote
     end
 
-    update_model
+    update_model!
   ensure
     target.unlink if target.present?
   end
 
   def transfer_to_remote
-    self.class.versions.each do |version_name, options|
-      path = local_path_for(version_name.to_s)
-
-      remote.transfer_from(path, remote_key_for(version_name))
-      remove_local_copy(version_name)
+    @versions.each do |_, version|
+      version.transfer_to_remote
     end
-  end
-
-  def local_path_for(version_name)
-    Storage.storage_path.join(remote_key_for(version_name.to_s))
   end
 
   def local_path
-    local_path_for(DEFAULT_VERSION_NAME)
+    @versions[DEFAULT_VERSION_NAME].local_path
+  end
+
+  def value
+    @basename.presence || @model[@field_name]
   end
 
   def url(version_name = DEFAULT_VERSION_NAME)
-    value = @model[@field_name]
-
-    return if value.blank?
-
-    key = remote_key_for(version_name)
-    if local_copy_exists?
-      "/#{key}"
-    else
-      remote.url_for(key)
-    end
+    @versions[version_name].url
   end
 
   def present?
@@ -107,79 +97,80 @@ class Storage::Model
 
   def as_json
     if present?
-      result = {}
-      self.class.versions.each do |version_name, _|
-        result[version_name] = url(version_name)
-      end
-
-      result
+      Hash[@versions.map { |version_name, version_object|
+        [version_name, version_object.url]
+      }]
     else
       nil
     end
   end
 
-  private
-
-  def process_locally
-    self.class.versions.each do |version_name, version_object|
+  def reprocess
+    @versions.each do |version_name, version_object|
       next if version_object.options.blank?
 
-      current_path = local_path_for(version_name)
-      image = ::MiniMagick::Image.open(current_path.to_s)
-
-      if version_object.options[:resize].present?
-        image.resize(version_object.options[:resize])
+      current_path = version_object.local_path
+      if current_path.exist?
+        process_version(version_object, current_path.to_s)
+      else
+        begin
+          url = url(version_name)
+          tmpfile = Tempfile.new(url.parameterize)
+          download_original(url, tmpfile)
+          process_version(version_object, tmpfile.path)
+          remote.transfer_from(tmpfile.path, version_object.remote_key)
+        ensure
+          tmpfile.try(:unlink)
+        end
       end
-      image.write(current_path)
     end
-  end
-
-  def local_copy_exists?
-    local_path.exist?
-  end
-
-  def remove_local_copy(version_name)
-    path = local_path_for(version_name)
-
-    if path.exist?
-      FileUtils.rm path
-      FileUtils.rmdir Storage.storage_path.join(model_uploads_path)
-    end
-  end
-
-  def remove_remote_copy(version_name)
-    remote.remove_file(remote_key_for(version_name))
-  end
-
-  def update_model
-    @model.update!(@field_name => @basename)
-  end
-
-  def remote
-    @remote ||= ::Storage::Remote.new
-  end
-
-  def upload_path_for(version_name)
-    File.join(model_uploads_path, version_name.to_s)
-  end
-
-  def remote_key_for(version_name)
-    File.join(upload_path_for(version_name.to_s), @basename.presence || @model[@field_name])
   end
 
   def model_uploads_path
     File.join("uploads", @model.class.name.underscore, @model.id.to_s)
   end
 
+  def remote
+    @remote ||= ::Storage::Remote.new
+  end
+
+  private
+
+  def process_locally
+    @versions.each do |version_name, version_object|
+      next if version_object.options.blank?
+
+      current_path = version_object.local_path
+      process_version(version_object, current_path.to_s)
+    end
+  end
+
+  def process_version(version_object, path)
+    image = ::MiniMagick::Image.open(path)
+
+    if version_object.options[:resize].present?
+      image.resize(version_object.options[:resize])
+    end
+    image.write(path)
+  end
+
+  def local_copy_exists?
+    local_path.exist?
+  end
+
+  def update_model!
+    @model.update!(@field_name => @basename)
+  end
+
   def save_locally(target)
-    self.class.versions.each do |version_name, version_object|
-      path = local_path_for(version_name)
+    @versions.each do |_, version_object|
+      path = version_object.local_path
       FileUtils.mkdir_p File.dirname(path)
       FileUtils.cp target.path, path
     end
 
-    targets = self.class.versions.map do |version_name, version_object|
-      local_path_for(version_name).to_s
+    targets = @versions.map do |_, version_object|
+      version_object.local_path.to_s
     end
 
     FileUtils.chmod 0644, targets

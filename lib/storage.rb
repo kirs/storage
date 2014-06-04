@@ -2,6 +2,8 @@ require 'mini_magick'
 require 'aws-sdk'
 
 module Storage
+  class VersionNotExists < StandardError; end
+
   class << self
     attr_accessor :storage_path
     attr_accessor :s3_credentials
@@ -46,3 +48,5 @@ require "storage/model"
 require "storage/opts_validator"
 require "storage/remote"
 require "storage/version"
+require "storage/version_storage"
+require "storage/versions_resolver"
