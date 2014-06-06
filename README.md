@@ -5,9 +5,9 @@
 
 At [Evil Martians](http://evl.ms), we use Carrierwave to store billions of files in S3 cloud and we faced with such issues:
 
-* logic becomes too comples if you use [carrierwave-backgrounder](https://github.com/lardawge/carrierwave_backgrounder)
+* with [carrierwave-backgrounder](https://github.com/lardawge/carrierwave_backgrounder), logic becomes too complex
 * it creates [bunch](https://github.com/lardawge/carrierwave_backgrounder/blob/master/lib/backgrounder/orm/activemodel.rb) of [callbacks](https://github.com/lardawge/carrierwave_backgrounder/blob/master/lib/backgrounder/orm/base.rb) and magick attributes inside AR::Base model
-* Rails 4 way prefers using Service and Value objects for comples logic inside your model
+* Rails 4 way prefers [using Service and Value objects](http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/) for complex logic inside the Model
 
 So what we need, is the solution to:
 
