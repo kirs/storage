@@ -51,11 +51,20 @@ class Storage::Model
     digest = Digest::MD5.hexdigest(original_url)
     target = Tempfile.new(digest, encoding: 'binary')
 
-    @basename = Storage.extract_basename(original_url)
-
     Storage.download(original_url, target)
 
-    save_locally(target)
+    store(target, original_url)
+  ensure
+    target.try(:unlink)
+  end
+
+  def store(file, name = nil)
+    unless file.is_a?(File) || file.is_a?(Tempfile)
+      raise ArgumentError.new("#store receives instance of File or Tempfile")
+    end
+
+    @basename = Storage.extract_basename(name.presence || file.path)
+    save_locally(file)
     reprocess
 
     if remote_storage_enabled?
@@ -63,8 +72,6 @@ class Storage::Model
     end
 
     update_model!
-  ensure
-    target.try(:unlink)
   end
 
   def transfer_to_remote

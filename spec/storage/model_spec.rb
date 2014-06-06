@@ -75,11 +75,99 @@ describe Storage::Model do
     end
   end
 
+  describe "#store" do
+    context "with bad object instead of file" do
+      context "with String" do
+        it "throws an error" do
+          post = Post.create!
+
+          expect {
+            post.cover_image.store("/etc/passwd")
+          }.to raise_error(ArgumentError)
+        end
+      end
+
+      context "with Pathname" do
+        it "throws an error" do
+          post = Post.create!
+
+          expect {
+            post.cover_image.store(Pathname.new("/etc/passwd"))
+          }.to raise_error(ArgumentError)
+        end
+      end
+    end
+
+    context "with local upload" do
+      context "with clear filename" do
+        before do
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+        end
+
+        it "stores the file" do
+          post = Post.create!
+
+          dumb = File.open(dumb_path)
+          post.cover_image.store(dumb)
+
+          expect(post.cover_image).to be_present
+          expect(post.cover_image.local_path.exist?).to eq true
+
+          expect(post[:cover_image]).to eq 'dumb.jpg'
+        end
+      end
+
+      context "with irregular filename" do
+        before do
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+        end
+
+        it "cleanes up filename" do
+          post = Post.create!
+
+          allow(Storage).to receive(:extract_basename).and_return("1.jpg")
+
+          dumb = File.open(dumb_path)
+          post.cover_image.store(dumb)
+
+          expect(post.cover_image).to be_present
+          expect(post[:cover_image]).to eq '1.jpg'
+        end
+      end
+    end
+
+    context "with remote upload" do
+      context "with clear filename" do
+        let(:post) { Post.create! }
+
+        before do
+          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+
+          stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg")
+          stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/dumb.jpg")
+          stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/dumb.jpg")
+        end
+
+        it "stores the file" do
+          dumb = File.open(dumb_path)
+          post.cover_image.store(dumb)
+
+          expect(post.cover_image).to be_present
+          expect(post.cover_image.local_path.exist?).to eq false
+
+          expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg"
+
+          expect(post[:cover_image]).to eq 'dumb.jpg'
+        end
+      end
+    end
+  end
+
   describe "#download" do
     let(:image_url) { "http://putin.vor/1.jpg" }
 
     context "local upload" do
-      context "valid filename" do
+      context "with clear filename" do
         before do
           stub_request(:any, image_url).
             to_return(body: File.new(dumb_path), status: 200)
@@ -105,7 +193,7 @@ describe Storage::Model do
         end
       end
 
-      context "valid filename" do
+      context "with irregular filename" do
         let(:image_url) { "http://i.ebayimg.com/00/s/MTYwMFgxNTQz/z/7LMAAMXQCgpRs1kq/$(KGrHqRHJ!4FBQ!sVjWMBRs1kp8-Lg~~60_1.JPG?set_id=8800005007" }
 
         before do
@@ -190,6 +278,7 @@ describe Storage::Model do
 
         expect(post[:cover_image]).to eq '1.jpg'
         expect(post.cover_image.present?).to eq true
+        expect(post.cover_image.local_path.exist?).to eq false
 
         expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
       end
