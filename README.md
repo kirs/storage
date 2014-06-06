@@ -3,7 +3,20 @@
 [![Build Status](https://travis-ci.org/kirs/storage.svg?branch=master)](https://travis-ci.org/kirs/storage)
 [![Code Climate](https://codeclimate.com/github/kirs/storage.png)](https://codeclimate.com/github/kirs/storage)
 
-TODO: Write a gem description
+At [Evil Martians](http://evl.ms), we use Carrierwave to store billions of files in S3 cloud and we faced with such issues:
+
+* logic becomes too comples if you use [carrierwave-backgrounder](https://github.com/lardawge/carrierwave_backgrounder)
+* it creates [bunch](https://github.com/lardawge/carrierwave_backgrounder/blob/master/lib/backgrounder/orm/activemodel.rb) of [callbacks](https://github.com/lardawge/carrierwave_backgrounder/blob/master/lib/backgrounder/orm/base.rb) and magick attributes inside AR::Base model
+* Rails 4 way prefers using Service and Value objects for comples logic inside your model
+
+So what we need, is the solution to:
+
+* download remote image
+* save it locally
+* process it (including resize and watermarks)
+* transfer it to S3 in background if we need to
+* backup it
+* reprocess photo if size was changed
 
 ## Installation
 
@@ -19,7 +32,7 @@ Or install it yourself as:
 
     $ gem install storage
 
-You can configure `Storage` in initializer:
+Then you can configure `Storage` in Rails initializer:
 
 ```ruby
 # config/initializers/storage.rb
@@ -43,7 +56,7 @@ end
 
 ## Usage
 
-Firstly, you need to declare `Storage` model:
+Firstly, you need to declare `Storage` model (like `Uploader` in Carrierwave):
 
 ```ruby
 # app/storages/cover_photo_storage.rb
@@ -70,7 +83,7 @@ class Post < ActiveRecord::Base
 end
 ```
 
-* Don't forget to add `cover_photo` column into your schema *
+_Don't forget to add `cover_photo` column into your DB scheme_
 
 Now you can use Storage API:
 
