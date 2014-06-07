@@ -124,6 +124,10 @@ class Storage::Model
     @remote ||= ::Storage::Remote.new
   end
 
+  def process_image(version, image)
+    raise NotImplementedError
+  end
+
   private
 
   def local_copy_exists?

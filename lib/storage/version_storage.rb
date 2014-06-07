@@ -77,10 +77,7 @@ class Storage::VersionStorage
 
   def process_image(path)
     image = ::MiniMagick::Image.open(path)
-
-    if options[:resize].present?
-      image.resize(options[:resize])
-    end
+    @storage_model.process_image(self, image)
     image.write(path)
   end
 end

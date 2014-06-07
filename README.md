@@ -62,12 +62,20 @@ Firstly, you need to declare `Storage` model (like `Uploader` in Carrierwave):
 # app/storages/cover_photo_storage.rb
 class CoverPhotoStorage < Storage::Model
   version :original
-  version :thumb, resize: "200x200"
-  version :big, resize: "300x300"
+  version :thumb, size: "200x200"
+  version :big, size: "300x300"
 
   # leave this if you want to use S3 as a storage
   def remote_storage_enabled?
     true
+  end
+
+  # define how you would like to modify the image
+  def process_image(version, image)
+    # image is instance of MiniMagick::Image
+    if version.options[:size].present?
+      image.resize(version.options[:size])
+    end
   end
 end
 ```

@@ -2,8 +2,14 @@ require 'spec_helper'
 
 class OneMoreStorage < Storage::Model
   version :original
-  version :thumb, resize: "200x200"
-  version :big, resize: "300x300"
+  version :thumb, size: "200x200"
+  version :big, size: "300x300"
+
+  def process_image(version, image)
+    if version.options[:size].present?
+      image.resize(version.options[:size])
+    end
+  end
 end
 
 class Post < ActiveRecord::Base
