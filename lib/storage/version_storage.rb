@@ -22,7 +22,7 @@ class Storage::VersionStorage
   end
 
   def process
-    return if options.blank?
+    return if options.blank? || @storage_model.value.blank?
 
     current_path = local_path
     if current_path.exist?
