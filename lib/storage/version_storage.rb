@@ -32,7 +32,7 @@ class Storage::VersionStorage
       if current_path.exist?
         Storage::UploadedFile.new(::File.open(current_path), :local)
       else # if remote
-        tmpfile = Tempfile.new(url.parameterize)
+        tmpfile = Tempfile.new(url.parameterize, encoding: 'binary')
         Storage.download(url, tmpfile)
         Storage::UploadedFile.new(tmpfile, :remote)
       end
@@ -49,7 +49,7 @@ class Storage::VersionStorage
     end
 
     filename = File.basename(local_path)
-    target_file = Tempfile.new(filename)
+    target_file = Tempfile.new(filename, encoding: 'binary')
     process_image(original_file, target_file.path)
 
     if local_copy_exists?
