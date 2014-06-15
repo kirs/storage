@@ -400,15 +400,22 @@ describe Storage::Model do
 
         expect(post.cover_image.present?).to eq true
 
-        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(body: File.new(dumb_path), status: 200)
-        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(body: File.new(dumb_path), status: 200)
-        stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(body: File.new(dumb_path), status: 200)
+        get_original = stub_request(:get, "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(body: File.new(dumb_path), status: 200)
+
+        # to replace
+        stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
+        stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
+        stub_request(:delete, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
 
         put_thumb = stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
         put_big = stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg")
 
         post.cover_image.reprocess
 
+        expect(get_original).to have_been_made.times(1)
+
+        expect(put_thumb).to have_been_made.times(1)
         expect(put_thumb).to have_been_made.times(1)
         expect(put_big).to have_been_made.times(1)
       end

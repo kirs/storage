@@ -58,10 +58,10 @@ if defined?(Rails)
       # end
     end
   end
-
 end
 
 require "storage/model"
+require "storage/uploaded_file"
 require "storage/remote"
 require "storage/version"
 require "storage/version/opts_validator"

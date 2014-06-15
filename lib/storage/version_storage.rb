@@ -15,27 +15,57 @@ class Storage::VersionStorage
       FileUtils.rm path
       FileUtils.rmdir Storage.storage_path.join(@storage_model.model_uploads_path)
     end
+
+    clear_file_cache
   end
 
   def remove_remote_copy
     @storage_model.remote.remove_file(remote_key)
+    clear_file_cache
   end
 
-  def process
-    return if options.blank? || @storage_model.value.blank?
+  def file
+    @file ||= begin
+      current_path = local_path
 
-    current_path = local_path
-    if current_path.exist?
-      process_image(current_path.to_s)
-    else
-      begin
+      # if local
+      if current_path.exist?
+        Storage::UploadedFile.new(::File.open(current_path), :local)
+      else # if remote
         tmpfile = Tempfile.new(url.parameterize)
         Storage.download(url, tmpfile)
-        process_image(tmpfile.path)
-        @storage_model.remote.transfer_from(tmpfile.path, remote_key)
-      ensure
-        tmpfile.try(:unlink)
+        Storage::UploadedFile.new(tmpfile, :remote)
       end
+    end
+  end
+
+  def process(original_file = nil)
+    return if options.blank? || @storage_model.value.blank?
+
+    cached_original_file = original_file.present?
+
+    if original_file.nil?
+      original_file = @storage_model.versions[:original].file
+    end
+
+    filename = File.basename(local_path)
+    target_file = Tempfile.new(filename)
+    process_image(original_file, target_file.path)
+
+    if local_copy_exists?
+      FileUtils.rm(local_path)
+      FileUtils.cp target_file.path, local_path
+    else
+      begin
+        @storage_model.remote.remove_file(remote_key) # optional, maybe replace
+        @storage_model.remote.transfer_from(target_file.path, remote_key)
+      end
+    end
+
+  ensure
+    target_file.try(:unlink)
+    if !cached_original_file && original_file.remote?
+      original_file.source_file.try(:unlink)
     end
   end
 
@@ -75,9 +105,13 @@ class Storage::VersionStorage
 
   private
 
-  def process_image(path)
-    image = ::MiniMagick::Image.open(path)
+  def process_image(source, target_path)
+    image = ::MiniMagick::Image.open(source.path)
     @storage_model.process_image(self, image)
-    image.write(path)
+    image.write(target_path)
+  end
+
+  def clear_file_cache
+    @file = nil
   end
 end

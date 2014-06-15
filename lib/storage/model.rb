@@ -111,8 +111,16 @@ class Storage::Model
   end
 
   def reprocess
+    return unless present?
+
+    original_file = versions[:original].file
+
     @versions.values.each do |version|
-      version.process
+      version.process(original_file)
+    end
+
+    if original_file.remote?
+      original_file.unlink
     end
   end
 
