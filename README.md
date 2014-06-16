@@ -77,6 +77,11 @@ class CoverPhotoStorage < Storage::Model
       image.resize(version.options[:size])
     end
   end
+
+  # optionally: redefine to use custom uploads path
+  def model_uploads_path
+    File.join("uploads", @model.class.name.underscore, @model.id.to_s)
+  end
 end
 ```
 
