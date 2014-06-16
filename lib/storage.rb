@@ -4,6 +4,8 @@ require 'aws-sdk'
 module Storage
   class VersionNotExists < StandardError; end
 
+  SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\+_]/
+
   class << self
     attr_accessor :storage_path
     attr_accessor :s3_credentials
@@ -15,13 +17,20 @@ module Storage
 
     def extract_basename(url)
       uri = URI.parse(url)
-      filename = uri.path
-      @extension = File.extname(filename)
-      @basename = Zaru.new(File.basename(filename, @extension)).sanitize
-      ["~", ",", "+"].each do |symb|
-        @basename = @basename.gsub(symb, "")
-      end
-      "#{@basename}#{@extension}".downcase
+
+      name = uri.path
+
+      extension = File.extname(name)
+
+      name = File.basename(name, extension)
+      name = name.gsub("\\", "/") # work-around for IE
+      name = name.gsub(SANITIZE_REGEXP, "_")
+      name = "_#{name}" if name =~ /\A\.+\z/
+      name = "unnamed" if name.size == 0
+      name = name.mb_chars
+
+
+      "#{name}#{extension}".downcase
     end
 
     def download(url, target)

@@ -1,5 +1,3 @@
-require 'zaru'
-
 class Storage::Model
   DEFAULT_VERSION_NAME = :original
 
