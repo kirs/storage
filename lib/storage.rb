@@ -4,7 +4,7 @@ require 'aws-sdk'
 module Storage
   class VersionNotExists < StandardError; end
 
-  SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\+_]/
+  SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_]/
 
   class << self
     attr_accessor :storage_path

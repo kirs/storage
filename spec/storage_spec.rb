@@ -16,7 +16,7 @@ describe Storage do
 
       it "works" do
         result = described_class.extract_basename(url)
-        expect(result).to eq "_t2ec16zhjguffhzp3vkybs_+l7s-dw__60_1.jpg"
+        expect(result).to eq "_t2ec16zhjguffhzp3vkybs__l7s-dw__60_1.jpg"
       end
     end
 
