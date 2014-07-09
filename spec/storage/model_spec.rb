@@ -161,7 +161,7 @@ describe Storage::Model do
           expect(post.cover_image).to be_present
           expect(post.cover_image.local_path.exist?).to eq false
 
-          expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg"
+          expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg"
 
           expect(post[:cover_image]).to eq 'dumb.jpg'
         end
@@ -286,7 +286,7 @@ describe Storage::Model do
         expect(post.cover_image.present?).to eq true
         expect(post.cover_image.local_path.exist?).to eq false
 
-        expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
+        expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
       end
     end
   end
@@ -352,8 +352,8 @@ describe Storage::Model do
     context "remote upload" do
       it "works" do
         post = Post.create!(cover_image: filename)
-        expect(post.cover_image.url).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
-        expect(post.cover_image.url(:big)).to eq "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
+        expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
+        expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
       end
     end
   end
@@ -366,9 +366,9 @@ describe Storage::Model do
         post = Post.create!(cover_image: filename)
 
         urls = {
-          original: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
-          thumb: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/thumb/1.jpg",
-          big: "http://#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/big/1.jpg"
+          original: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
+          thumb: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/thumb/1.jpg",
+          big: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/big/1.jpg"
         }
 
         expect(post.cover_image.as_json).to eq urls

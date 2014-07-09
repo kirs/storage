@@ -19,8 +19,14 @@ class Storage::Remote
     end
   end
 
-  def url_for(filename)
-    "http://#{bucket_name}.s3.amazonaws.com/#{filename}"
+  def url_for(filename, with_protocol: false)
+    protocol_prefix = if with_protocol
+      "http:"
+    else
+      ""
+    end
+
+    "#{protocol_prefix}//#{bucket_name}.s3.amazonaws.com/#{filename}"
   end
 
   def amazon_bucket

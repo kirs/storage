@@ -33,7 +33,7 @@ class Storage::VersionStorage
         Storage::UploadedFile.new(::File.open(current_path), :local)
       else # if remote
         tmpfile = Tempfile.new(url.parameterize, encoding: 'binary')
-        Storage.download(url, tmpfile)
+        Storage.download(url(with_protocol: true), tmpfile)
         Storage::UploadedFile.new(tmpfile, :remote)
       end
     end
@@ -74,7 +74,7 @@ class Storage::VersionStorage
     remove_local_copy
   end
 
-  def url
+  def url(with_protocol: false)
     value = @storage_model.value
 
     return if value.blank?
@@ -83,7 +83,7 @@ class Storage::VersionStorage
     if local_copy_exists?
       "/#{key}"
     else
-      @storage_model.remote.url_for(key)
+      @storage_model.remote.url_for(key, with_protocol: with_protocol)
     end
   end
 
