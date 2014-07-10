@@ -119,6 +119,11 @@ post.cover_photo.present?
 => true
 post.cover_photo.local_path
 => /path/to/rails/public/uploads/post/1/big/photo.jpg
+
+# to reprocess all records
+Post.find_each do |post|
+  post.cover_photo.reprocess
+end
 ```
 
 ## Contributing
