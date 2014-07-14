@@ -1,10 +1,12 @@
 require 'mini_magick'
 require 'aws-sdk'
+require 'open-uri'
 
 module Storage
   class VersionNotExists < StandardError; end
 
   SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_]/
+  SEGMENT_SIZE = 32768
 
   class << self
     attr_accessor :storage_path
@@ -40,8 +42,9 @@ module Storage
         raise ArgumentError.new("empty path in #{url}")
       end
 
-      Net::HTTP.get_response(uri) do |response|
-        response.read_body do |segment|
+      open(uri, 'rb', redirect: true) do |response|
+        while not(response.eof?)
+          segment = response.read(SEGMENT_SIZE)
           target.write(segment)
         end
       end
