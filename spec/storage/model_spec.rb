@@ -19,9 +19,7 @@ class Post < ActiveRecord::Base
 end
 
 describe Storage::Model do
-  let(:dumb_path) {
-    File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg")
-  }
+  let(:dumb_path) { File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg") }
 
   before do
     cleanup_post_uploads

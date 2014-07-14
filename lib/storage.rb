@@ -4,6 +4,7 @@ require 'open-uri'
 
 module Storage
   class VersionNotExists < StandardError; end
+  class NotFoundError < StandardError; end
 
   SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_]/
   SEGMENT_SIZE = 32768
@@ -48,7 +49,8 @@ module Storage
           target.write(segment)
         end
       end
-
+    rescue OpenURI::HTTPError
+      raise NotFoundError.new("failed to download #{url}")
     ensure
       target.close
     end
