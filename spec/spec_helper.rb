@@ -7,6 +7,7 @@ require 'webmock/rspec'
 require 'active_record'
 require 'storage'
 require 'timecop'
+require 'rack/test'
 
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 

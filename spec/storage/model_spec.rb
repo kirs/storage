@@ -105,7 +105,7 @@ describe Storage::Model do
     end
 
     context "with local upload" do
-      context "with clear filename" do
+      context "with Rack::UploadedFile instance" do
         before do
           allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
         end
@@ -113,7 +113,7 @@ describe Storage::Model do
         it "stores the file" do
           post = Post.create!
 
-          dumb = File.open(dumb_path)
+          dumb = Rack::Test::UploadedFile.new(dumb_path)
           post.cover_image.store(dumb)
 
           expect(post.cover_image).to be_present
@@ -123,21 +123,41 @@ describe Storage::Model do
         end
       end
 
-      context "with irregular filename" do
-        before do
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+      context "with File instance" do
+        context "with clear filename" do
+          before do
+            allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          end
+
+          it "stores the file" do
+            post = Post.create!
+
+            dumb = File.open(dumb_path)
+            post.cover_image.store(dumb)
+
+            expect(post.cover_image).to be_present
+            expect(post.cover_image.local_path.exist?).to eq true
+
+            expect(post[:cover_image]).to eq 'dumb.jpg'
+          end
         end
 
-        it "cleanes up filename" do
-          post = Post.create!
+        context "with irregular filename" do
+          before do
+            allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          end
 
-          allow(Storage).to receive(:extract_basename).and_return("1.jpg")
+          it "cleanes up filename" do
+            post = Post.create!
 
-          dumb = File.open(dumb_path)
-          post.cover_image.store(dumb)
+            allow(Storage).to receive(:extract_basename).and_return("1.jpg")
 
-          expect(post.cover_image).to be_present
-          expect(post[:cover_image]).to eq '1.jpg'
+            dumb = File.open(dumb_path)
+            post.cover_image.store(dumb)
+
+            expect(post.cover_image).to be_present
+            expect(post[:cover_image]).to eq '1.jpg'
+          end
         end
       end
     end

@@ -57,11 +57,19 @@ class Storage::Model
   end
 
   def store(file, name = nil)
-    unless file.is_a?(File) || file.is_a?(Tempfile)
-      raise ArgumentError.new("#store receives instance of File or Tempfile")
+    unless file.respond_to?(:path)
+      raise ArgumentError.new("#store receives instance of class with `path` method")
     end
 
-    @basename = Storage.extract_basename(name.presence || file.path)
+    original_name = if file.respond_to?(:original_filename)
+      file.original_filename
+    elsif name.present?
+      name
+    else
+      file.path
+    end
+
+    @basename = Storage.extract_basename(original_name)
     save_locally(file)
     reprocess
 
