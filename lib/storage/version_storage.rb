@@ -33,7 +33,7 @@ class Storage::VersionStorage
         Storage::UploadedFile.new(::File.open(current_path), :local)
       else # if remote
         tmpfile = Tempfile.new(url.parameterize, encoding: 'binary')
-        Storage.download(url(with_protocol: true), tmpfile)
+        Storage::Downloader.new.download(url(with_protocol: true), tmpfile)
         Storage::UploadedFile.new(tmpfile, :remote)
       end
     end

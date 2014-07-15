@@ -29,4 +29,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "aws-sdk", "~> 1.0"
   spec.add_dependency "mini_magick"
+  spec.add_dependency "faraday"
+  spec.add_dependency "faraday_middleware"
 end
