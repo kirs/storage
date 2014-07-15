@@ -1,22 +1,21 @@
-require 'faraday'
-require 'faraday_middleware'
+require 'httparty'
 
 module Storage
   class Downloader
-    def initialize(connection = nil)
-      @connection ||= self.class.default_connection.call
+    def initialize(options = nil)
+      @options = options || self.class.options || {}
     end
 
-    def download(url, target)
+    def download(url, target, options = {})
       uri = URI::parse(url)
 
       if uri.path.blank?
         raise ArgumentError.new("empty path in #{url}")
       end
 
-      response = @connection.get(url)
+      response = HTTParty.get(url, @options)
 
-      if response.status != 200
+      if response.code != 200
         raise NotFoundError.new("failed to download #{url}")
       end
 
@@ -25,15 +24,9 @@ module Storage
       target.close
     end
 
-    @default_connection = -> {
-      Faraday.new do |c|
-        c.response :follow_redirects
-        c.adapter  :net_http
-      end        
-    }
-
     class << self
-      attr_accessor :default_connection
+      attr_accessor :options
     end
-  end
+    @options = { follow_redirects: true }    
+  end  
 end
