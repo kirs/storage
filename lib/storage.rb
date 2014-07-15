@@ -1,13 +1,11 @@
 require 'mini_magick'
 require 'aws-sdk'
-require 'open-uri'
 
 module Storage
   class VersionNotExists < StandardError; end
   class NotFoundError < StandardError; end
 
   SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_]/
-  SEGMENT_SIZE = 32768
 
   class << self
     attr_accessor :storage_path
@@ -35,25 +33,6 @@ module Storage
 
       "#{name}#{extension}".downcase
     end
-
-    def download(url, target)
-      uri = URI::parse(url)
-
-      if uri.path.blank?
-        raise ArgumentError.new("empty path in #{url}")
-      end
-
-      open(uri, 'rb', redirect: true) do |response|
-        while not(response.eof?)
-          segment = response.read(SEGMENT_SIZE)
-          target.write(segment)
-        end
-      end
-    rescue OpenURI::HTTPError
-      raise NotFoundError.new("failed to download #{url}")
-    ensure
-      target.close
-    end
   end
 end
 
@@ -77,6 +56,7 @@ end
 require "storage/model"
 require "storage/uploaded_file"
 require "storage/remote"
+require "storage/downloader"
 require "storage/version"
 require "storage/version/opts_validator"
 require "storage/version_storage"

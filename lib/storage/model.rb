@@ -41,7 +41,7 @@ class Storage::Model
     update_model!
   end
 
-  def download(original_url)
+  def download(original_url, connection = nil)
     if present?
       remove
     end
@@ -49,7 +49,7 @@ class Storage::Model
     digest = Digest::MD5.hexdigest(original_url)
     target = Tempfile.new(digest, encoding: 'binary')
 
-    Storage.download(original_url, target)
+    Storage::Downloader.new(connection).download(original_url, target)
 
     store(target, original_url)
   ensure
