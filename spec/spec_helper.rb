@@ -15,6 +15,8 @@ DatabaseCleaner.strategy = :transaction
 
 I18n.enforce_available_locales
 
+WebMock.disable_net_connect!(allow: %w{codeclimate.com})
+
 def public_path(*paths)
   File.expand_path(File.join(File.dirname(__FILE__), 'public', *paths))
 end

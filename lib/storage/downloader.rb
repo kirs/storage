@@ -1,12 +1,7 @@
-require 'faraday'
-require 'faraday_middleware'
+require 'curb'
 
 module Storage
   class Downloader
-    def initialize(connection = nil)
-      @connection ||= self.class.default_connection.call
-    end
-
     def download(url, target)
       uri = URI::parse(url)
 
@@ -14,26 +9,19 @@ module Storage
         raise ArgumentError.new("empty path in #{url}")
       end
 
-      response = @connection.get(url)
+      connection = Curl::Easy.new(uri) do |c|
+        c.follow_location = true
+      end
 
-      if response.status != 200
+      connection.perform
+
+      if connection.status.to_i != 200
         raise NotFoundError.new("failed to download #{url}")
       end
 
-      target.write(response.body)
+      target.write(connection.body_str)
     ensure
       target.close
-    end
-
-    @default_connection = -> {
-      Faraday.new do |c|
-        c.response :follow_redirects
-        c.adapter  :net_http
-      end        
-    }
-
-    class << self
-      attr_accessor :default_connection
     end
   end
 end
