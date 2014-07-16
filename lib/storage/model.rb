@@ -95,11 +95,15 @@ class Storage::Model
   end
 
   def url(version_name = DEFAULT_VERSION_NAME)
-    @versions[version_name].url
+    @versions[version_name].url || default_url(version_name)
   end
 
   def present?
-    url.present?
+    value.present?
+  end
+
+  def default_url(version_name)
+    "/default/#{self.class.to_s.underscore}/#{version_name}.png"
   end
 
   def blank?

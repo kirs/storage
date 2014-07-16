@@ -333,7 +333,6 @@ describe Storage::Model do
         expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/1/original/1.jpg")).to have_been_made.once
 
         expect(post.cover_image.present?).to eq false
-        expect(post.cover_image.url).to eq nil
       end
     end
   end
@@ -344,7 +343,10 @@ describe Storage::Model do
     context "without upload" do
       it "returns nil" do
         post = Post.create!
-        expect(post.cover_image.url).to eq nil
+
+        expect(post.cover_image.url).to eq "/default/one_more_storage/original.png"
+        expect(post.cover_image.url(:big)).to eq "/default/one_more_storage/big.png"
+        expect(post.cover_image.url(:thumb)).to eq "/default/one_more_storage/thumb.png"
       end
     end
 
