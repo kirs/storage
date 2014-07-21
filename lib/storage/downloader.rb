@@ -7,7 +7,8 @@ module Storage
     end
 
     def download(url, target, options = {})
-      uri = URI::parse(URI::escape(url, UNSAFE_URL_CHARS))
+      url = URI::escape(url, UNSAFE_URL_CHARS)
+      uri = URI::parse(url)
 
       if uri.path.blank?
         raise ArgumentError.new("empty path in #{url}")
