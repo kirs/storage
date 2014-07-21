@@ -28,5 +28,14 @@ describe Storage do
         expect(result).to eq "____.jpg"
       end
     end
+
+    context "with squared brackets case" do
+      let(:url) { "http://ebay-social-staging.s3.amazonaws.com/uploads/ebay_item/9/original/abc[].jpg" }
+
+      it "works" do
+        result = described_class.extract_basename(url)
+        expect(result).to eq "abc__.jpg"
+      end
+    end    
   end
 end
