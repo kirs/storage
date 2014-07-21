@@ -7,7 +7,7 @@ module Storage
     end
 
     def download(url, target, options = {})
-      uri = URI::parse(url)
+      uri = URI::parse(URI::escape(url, UNSAFE_URL_CHARS))
 
       if uri.path.blank?
         raise ArgumentError.new("empty path in #{url}")
@@ -29,4 +29,6 @@ module Storage
     end
     @options = { follow_redirects: true }    
   end  
+
+  UNSAFE_URL_CHARS = '<>{}|\\^~[]`#'
 end
