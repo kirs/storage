@@ -5,7 +5,7 @@ module Storage
   class VersionNotExists < StandardError; end
   class NotFoundError < StandardError; end
 
-  SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_]/
+  SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_\[\]]/
 
   class << self
     attr_accessor :storage_path
@@ -17,7 +17,7 @@ module Storage
     end
 
     def extract_basename(url)
-      uri = URI.parse(url)
+      uri = URI.parse(url.gsub(/[\[\]]/, '_'))
 
       name = uri.path
 
