@@ -50,16 +50,16 @@ class Storage::VersionStorage
 
     filename = File.basename(local_path)
     target_file = Tempfile.new(filename, encoding: 'binary')
-    process_image(original_file, target_file.path)
+    process_image(original_file, target_file)
+
+    target_file.rewind
 
     if local_copy_exists?
       FileUtils.rm(local_path)
       FileUtils.cp target_file.path, local_path
     else
-      begin
-        @storage_model.remote.remove_file(remote_key) # optional, maybe replace
-        @storage_model.remote.transfer_from(target_file.path, remote_key)
-      end
+      @storage_model.remote.remove_file(remote_key) # optional, maybe replace
+      @storage_model.remote.transfer_from(target_file, remote_key)
     end
 
   ensure
@@ -105,10 +105,10 @@ class Storage::VersionStorage
 
   private
 
-  def process_image(source, target_path)
+  def process_image(source, target)
     image = ::MiniMagick::Image.open(source.path)
     @storage_model.process_image(self, image)
-    image.write(target_path)
+    image.write(target)
   end
 
   def clear_file_cache
