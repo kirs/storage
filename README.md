@@ -73,6 +73,7 @@ class CoverPhotoStorage < Storage::Model
   # define how you would like to modify the image
   def process_image(version, image)
     # image is original, instance of MiniMagick::Image
+    # you can transform existing image object or return the new one
     if version.options[:size].present?
       image.resize(version.options[:size])
     end

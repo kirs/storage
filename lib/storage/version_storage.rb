@@ -112,7 +112,11 @@ class Storage::VersionStorage
 
   def process_image(source, target)
     image = ::MiniMagick::Image.open(source.path)
-    @storage_model.process_image(self, image)
+    result = @storage_model.process_image(self, image)
+    if result.is_a?(MiniMagick::Image)
+      image = result
+    end
+
     image.write(target)
   end
 
