@@ -49,7 +49,8 @@ class Storage::VersionStorage
     end
 
     filename = File.basename(local_path)
-    target_file = Tempfile.new(filename, encoding: 'binary')
+    extname = File.extname(local_path)
+    target_file = Tempfile.new([filename, extname], encoding: 'binary')
     process_image(original_file, target_file)
 
     target_file.rewind
