@@ -4,6 +4,10 @@ class Storage::VersionStorage
     @storage_model = storage_model
   end
 
+  def name
+    @version.name
+  end
+
   def options
     @version.options
   end
