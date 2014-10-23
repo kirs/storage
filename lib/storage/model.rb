@@ -153,7 +153,11 @@ class Storage::Model
   end
 
   def remote
-    @remote ||= ::Storage::Remote.new
+    @remote ||= remote_klass.new
+  end
+
+  def remote_klass
+    ::Storage::Remote
   end
 
   def process_image(version, image)

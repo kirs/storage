@@ -6,6 +6,8 @@ require_relative '../fixtures/one_more_local_storage'
 require_relative '../fixtures/remote_post'
 require_relative '../fixtures/one_more_remote_storage'
 
+require_relative '../fixtures/aliased_remote'
+
 describe Storage::Model do
   let(:dumb_path) { fixture_upload("dumb.jpg") }
 
@@ -451,6 +453,20 @@ describe Storage::Model do
       expect(versions[:original]).to be_instance_of(Storage::VersionStorage)
       expect(versions[:big]).to be_instance_of(Storage::VersionStorage)
       expect(versions[:thumb]).to be_instance_of(Storage::VersionStorage)
+    end
+  end
+
+  describe "#remote_klass" do
+    before do
+
+    end
+
+    it "works with custom Remote" do
+      post = RemotePost.create!(cover_image: '1.jpg')
+      storage_model = OneMoreRemoteStorage.new(post, :cover_image)
+      allow(storage_model).to receive(:remote_klass).and_return(AliasedRemote)
+
+      expect(storage_model.url(:big)).to eq 'http://storage.evl.ms/post/uploads/post/1/big/1.jpg?ts=123'
     end
   end
 
