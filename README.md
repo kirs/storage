@@ -129,6 +129,47 @@ Post.find_each do |post|
 end
 ```
 
+## Alias AWS S3 URLs
+
+You may want to proxy/alias S3 assets throught your servers to hide original URL or to reduce S3 trafic using caching.
+
+It's easy to write your own `Remote` backend:
+
+```ruby
+class CustomRemote < Storage::Remote
+  def url_for(filename, with_protocol: false)
+    protocol_prefix = if with_protocol
+      "http:"
+    else
+      ""
+    end
+
+    "#{protocol_prefix}//storage.yourcompany.com/#{filename}"
+  end
+end
+```
+
+```ruby
+class PhotoStorage < Storage::Model
+  version :original
+  version :big
+
+  def remote_klass
+    CustomRemote
+  end
+end
+```
+
+```
+post = Post.last
+post.photo.url # returns your custom url instead of URL on amazonaws.com domain
+=> //storage.yourcompany.com/uploads/post/1/big/1.jpg
+```
+
+## jpegoptim & optipng
+
+TODO
+
 ## Contributing
 
 1. Fork it ( https://github.com/[my-github-username]/storage/fork )
