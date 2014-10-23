@@ -457,10 +457,6 @@ describe Storage::Model do
   end
 
   describe "#remote_klass" do
-    before do
-
-    end
-
     it "works with custom Remote" do
       post = RemotePost.create!(cover_image: '1.jpg')
       storage_model = OneMoreRemoteStorage.new(post, :cover_image)
