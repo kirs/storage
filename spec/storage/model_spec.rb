@@ -92,10 +92,6 @@ describe Storage::Model do
 
     context "with local upload" do
       context "with Rack::UploadedFile instance" do
-        before do
-          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
-        end
-
         context "with default name" do
           it "stores the file" do
             post = LocalPost.create!
@@ -127,10 +123,6 @@ describe Storage::Model do
 
       context "with File instance" do
         context "with clear filename" do
-          before do
-            allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
-          end
-
           it "stores the file" do
             post = LocalPost.create!
 
@@ -145,10 +137,6 @@ describe Storage::Model do
         end
 
         context "with irregular filename" do
-          before do
-            allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
-          end
-
           it "cleanes up filename" do
             post = LocalPost.create!
 
@@ -169,8 +157,6 @@ describe Storage::Model do
         let(:post) { RemotePost.create! }
 
         before do
-          # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
-
           stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg")
           stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/dumb.jpg")
           stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/dumb.jpg")
@@ -200,7 +186,6 @@ describe Storage::Model do
           stub_request(:any, image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
         end
 
         it "works" do
@@ -228,7 +213,6 @@ describe Storage::Model do
           stub_request(:get, image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
 
           allow(Storage).to receive(:extract_basename).and_return("1.jpg")
         end
@@ -261,7 +245,6 @@ describe Storage::Model do
           stub_request(:any, another_image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
         end
 
         it "removes old picture" do
@@ -285,10 +268,7 @@ describe Storage::Model do
 
     context "remote upload" do
       before do
-        # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
-
-        stub_request(:any, image_url).
-          to_return(body: File.new(dumb_path), status: 200)
+        stub_request(:any, image_url).to_return(body: File.new(dumb_path), status: 200)
       end
 
       it "works" do
@@ -318,8 +298,6 @@ describe Storage::Model do
       let(:post) { RemotePost.create!(cover_image: '1.jpg') }
 
       before do
-        # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
-
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(status: 200)
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/big/1.jpg").to_return(status: 200)
@@ -391,13 +369,13 @@ describe Storage::Model do
       end
     end
 
-    # context "remote upload" do
-    #   it "works" do
-    #     post = Post.create!(cover_image: filename)
-    #     expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
-    #     expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
-    #   end
-    # end
+    context "remote upload" do
+      it "works" do
+        post = RemotePost.create!(cover_image: filename)
+        expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
+        expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
+      end
+    end
   end
 
   describe "#as_json" do
@@ -431,10 +409,7 @@ describe Storage::Model do
 
     context "with remote storage" do
       before do
-        allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
-
-        stub_request(:any, image_url).
-          to_return(body: File.new(dumb_path), status: 200)
+        stub_request(:any, image_url).to_return(body: File.new(dumb_path), status: 200)
       end
 
       it "works" do
