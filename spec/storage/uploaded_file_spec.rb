@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Storage::UploadedFile do
-  let(:dumb_path) { File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg") }
+  let(:dumb_path) { fixture_upload("dumb.jpg") }
 
   context "with local file" do
     it "works" do

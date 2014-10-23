@@ -1,25 +1,13 @@
 require 'spec_helper'
 
-class OneMoreStorage < Storage::Model
-  version :original
-  version :thumb, size: "200x200"
-  version :big, size: "300x300"
+require_relative '../fixtures/local_post'
+require_relative '../fixtures/one_more_local_storage'
 
-  def process_image(version, image)
-    if version.options[:size].present?
-      image.resize(version.options[:size])
-    end
-  end
-end
-
-class Post < ActiveRecord::Base
-  def cover_image
-    @cover_image ||= OneMoreStorage.new(self, :cover_image)
-  end
-end
+require_relative '../fixtures/remote_post'
+require_relative '../fixtures/one_more_remote_storage'
 
 describe Storage::Model do
-  let(:dumb_path) { File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg") }
+  let(:dumb_path) { fixture_upload("dumb.jpg") }
 
   before do
     cleanup_post_uploads
@@ -64,14 +52,14 @@ describe Storage::Model do
   describe "initializer" do
     context "with persisted model" do
       it "returns Storage" do
-        post = Post.create!
-        expect(post.cover_image).to be_instance_of(OneMoreStorage)
+        post = LocalPost.create!
+        expect(post.cover_image).to be_instance_of(OneMoreLocalStorage)
       end
     end
 
     context "with new model" do
       it "returns Storage" do
-        post = Post.new
+        post = LocalPost.new
         expect {
           post.cover_image
         }.to raise_error ArgumentError
@@ -83,7 +71,7 @@ describe Storage::Model do
     context "with bad object instead of file" do
       context "with String" do
         it "throws an error" do
-          post = Post.create!
+          post = LocalPost.create!
 
           expect {
             post.cover_image.store("/etc/passwd")
@@ -93,7 +81,7 @@ describe Storage::Model do
 
       context "with Pathname" do
         it "throws an error" do
-          post = Post.create!
+          post = LocalPost.create!
 
           expect {
             post.cover_image.store(Pathname.new("/etc/passwd"))
@@ -105,12 +93,12 @@ describe Storage::Model do
     context "with local upload" do
       context "with Rack::UploadedFile instance" do
         before do
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
         end
 
         context "with default name" do
           it "stores the file" do
-            post = Post.create!
+            post = LocalPost.create!
 
             dumb = Rack::Test::UploadedFile.new(dumb_path)
             post.cover_image.store(dumb)
@@ -124,7 +112,7 @@ describe Storage::Model do
 
         context "with custom name" do
           it "stores the file" do
-            post = Post.create!
+            post = LocalPost.create!
 
             dumb = Rack::Test::UploadedFile.new(dumb_path)
             post.cover_image.store(dumb, filename: "not_a_dumb.jpg")
@@ -140,11 +128,11 @@ describe Storage::Model do
       context "with File instance" do
         context "with clear filename" do
           before do
-            allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+            allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
           end
 
           it "stores the file" do
-            post = Post.create!
+            post = LocalPost.create!
 
             dumb = File.open(dumb_path)
             post.cover_image.store(dumb)
@@ -158,11 +146,11 @@ describe Storage::Model do
 
         context "with irregular filename" do
           before do
-            allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+            allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
           end
 
           it "cleanes up filename" do
-            post = Post.create!
+            post = LocalPost.create!
 
             allow(Storage).to receive(:extract_basename).and_return("1.jpg")
 
@@ -178,10 +166,10 @@ describe Storage::Model do
 
     context "with remote upload" do
       context "with clear filename" do
-        let(:post) { Post.create! }
+        let(:post) { RemotePost.create! }
 
         before do
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+          # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
 
           stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg")
           stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/dumb.jpg")
@@ -212,11 +200,11 @@ describe Storage::Model do
           stub_request(:any, image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
         end
 
         it "works" do
-          post = Post.create!
+          post = LocalPost.create!
           expect(post.cover_image.present?).to eq false
 
           post.cover_image.download(image_url)
@@ -240,13 +228,13 @@ describe Storage::Model do
           stub_request(:get, image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
 
           allow(Storage).to receive(:extract_basename).and_return("1.jpg")
         end
 
         it "works" do
-          post = Post.create!
+          post = LocalPost.create!
           expect(post.cover_image.present?).to eq false
 
           post.cover_image.download(image_url)
@@ -273,11 +261,11 @@ describe Storage::Model do
           stub_request(:any, another_image_url).
             to_return(body: File.new(dumb_path), status: 200)
 
-          allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
+          allow_any_instance_of(described_class).to receive(:skip_remote_storage?).and_return(true)
         end
 
         it "removes old picture" do
-          post = Post.create!
+          post = LocalPost.create!
           expect(post.cover_image.present?).to eq false
 
           post.cover_image.download(image_url)
@@ -297,14 +285,14 @@ describe Storage::Model do
 
     context "remote upload" do
       before do
-        allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+        # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
 
         stub_request(:any, image_url).
           to_return(body: File.new(dumb_path), status: 200)
       end
 
       it "works" do
-        post = Post.create!
+        post = RemotePost.create!
 
         stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")
         stub_request(:put, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg")
@@ -326,11 +314,11 @@ describe Storage::Model do
   end
 
   describe "#remove" do
-    let(:post) { Post.create!(cover_image: '1.jpg') }
-
     context "remote upload" do
+      let(:post) { RemotePost.create!(cover_image: '1.jpg') }
+
       before do
-        allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
+        # allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(true)
 
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/thumb/1.jpg").to_return(status: 200)
@@ -351,6 +339,24 @@ describe Storage::Model do
         expect(post.cover_image.present?).to eq false
       end
     end
+
+    context "local upload" do
+      let(:post) { LocalPost.create!(cover_image: '1.jpg') }
+
+      before do
+        path = post.cover_image.local_path
+        FileUtils.mkdir_p File.dirname(path)
+        FileUtils.cp(fixture_upload('dumb.jpg'), path)
+      end
+
+      it "can be removed" do
+        expect(post.cover_image.present?).to eq true
+
+        post.cover_image.remove
+
+        expect(post.cover_image.present?).to eq false
+      end
+    end
   end
 
   describe "#url" do
@@ -358,17 +364,17 @@ describe Storage::Model do
 
     context "without upload" do
       it "returns nil" do
-        post = Post.create!
+        post = LocalPost.create!
 
-        expect(post.cover_image.url).to eq "/default/one_more_storage/original.png"
-        expect(post.cover_image.url(:big)).to eq "/default/one_more_storage/big.png"
-        expect(post.cover_image.url(:thumb)).to eq "/default/one_more_storage/thumb.png"
+        expect(post.cover_image.url).to eq "/default/one_more_local_storage/original.png"
+        expect(post.cover_image.url(:big)).to eq "/default/one_more_local_storage/big.png"
+        expect(post.cover_image.url(:thumb)).to eq "/default/one_more_local_storage/thumb.png"
       end
     end
 
     context "not existing version" do
       it "throws exception" do
-        post = Post.create!(cover_image: filename)
+        post = LocalPost.create!(cover_image: filename)
 
         expect {
           post.cover_image.url(:somewhat)
@@ -378,20 +384,20 @@ describe Storage::Model do
 
     context "local upload" do
       it "works" do
-        post = Post.create!(cover_image: filename)
+        post = LocalPost.create!(cover_image: filename)
 
         allow(post.cover_image.versions[:original]).to receive(:local_copy_exists?).and_return(true)
         expect(post.cover_image.url).to eq "/uploads/post/#{post.id}/original/#{filename}"
       end
     end
 
-    context "remote upload" do
-      it "works" do
-        post = Post.create!(cover_image: filename)
-        expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
-        expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
-      end
-    end
+    # context "remote upload" do
+    #   it "works" do
+    #     post = Post.create!(cover_image: filename)
+    #     expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
+    #     expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
+    #   end
+    # end
   end
 
   describe "#as_json" do
@@ -399,7 +405,7 @@ describe Storage::Model do
 
     context "file present" do
       it "works" do
-        post = Post.create!(cover_image: filename)
+        post = LocalPost.create!(cover_image: filename)
 
         urls = {
           original: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
@@ -413,7 +419,7 @@ describe Storage::Model do
 
     context "file absent" do
       it "works" do
-        post = Post.create!
+        post = LocalPost.create!
 
         expect(post.cover_image.as_json).to eq nil
       end
@@ -432,7 +438,7 @@ describe Storage::Model do
       end
 
       it "works" do
-        post = Post.create!(cover_image: '1.jpg')
+        post = LocalPost.create!(cover_image: '1.jpg')
 
         expect(post.cover_image.present?).to eq true
 
@@ -460,7 +466,7 @@ describe Storage::Model do
 
   describe "#versions" do
     it "are present" do
-      post = Post.create!(cover_image: '1.jpg')
+      post = LocalPost.create!(cover_image: '1.jpg')
       versions = post.cover_image.versions
       expect(versions).to be_present
 

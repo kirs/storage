@@ -9,6 +9,8 @@ require 'storage'
 require 'timecop'
 require 'rack/test'
 
+Dir[File.join(Dir.pwd, 'spec/support/**/*.rb')].each{ |f| require f }
+
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 
 DatabaseCleaner.strategy = :transaction
@@ -35,6 +37,8 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  config.include UploadFixtureHelper
 
   config.order = "random"
 

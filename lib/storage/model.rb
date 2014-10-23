@@ -10,6 +10,14 @@ class Storage::Model
     self.versions << Storage::Version.new(name, options)
   end
 
+  def self.store_remotely
+    @store_remotely = true
+  end
+
+  def self.store_remotely?
+    !!@store_remotely
+  end
+
   def initialize(model, field_name)
     unless model.persisted?
       raise ArgumentError.new("model #{model} is not persisted")
@@ -20,9 +28,9 @@ class Storage::Model
     @versions = Storage::VersionsResolver.new(self, self.class.versions)
   end
 
-  def remote_storage_enabled?
+  def skip_remote_storage?
     if defined?(Rails)
-      !(Rails.env.development? || Rails.env.test?)
+      (Rails.env.development? || Rails.env.test?)
     else
       false
     end
@@ -32,7 +40,7 @@ class Storage::Model
     @versions.each do |version_name, version_object|
       version_object.remove_local_copy
 
-      if remote_storage_enabled?
+      if self.class.store_remotely? && !skip_remote_storage?
         version_object.remove_remote_copy
       end
     end
@@ -73,7 +81,7 @@ class Storage::Model
     save_locally(file)
     reprocess
 
-    if remote_storage_enabled?
+    if self.class.store_remotely? && !skip_remote_storage?
       transfer_to_remote
     end
 

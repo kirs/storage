@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Storage::Downloader do
   describe ".download" do
-    let(:dumb_path) { File.join(Dir.pwd, 'spec', "fixtures", "dumb.jpg") }
+    let(:dumb_path) { fixture_upload("dumb.jpg") }
     let(:image_url) { "http://putin.vor/1.jpg" }
 
     context "with valid url" do
