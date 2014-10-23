@@ -43,7 +43,7 @@ class Storage::VersionStorage
   end
 
   def process(original_file = nil)
-    return if options.blank? || @storage_model.value.blank?
+    return if @storage_model.value.blank?
 
     cached_original_file = original_file.present?
 
