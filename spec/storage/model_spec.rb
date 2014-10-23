@@ -108,16 +108,32 @@ describe Storage::Model do
           allow_any_instance_of(described_class).to receive(:remote_storage_enabled?).and_return(false)
         end
 
-        it "stores the file" do
-          post = Post.create!
+        context "with default name" do
+          it "stores the file" do
+            post = Post.create!
 
-          dumb = Rack::Test::UploadedFile.new(dumb_path)
-          post.cover_image.store(dumb)
+            dumb = Rack::Test::UploadedFile.new(dumb_path)
+            post.cover_image.store(dumb)
 
-          expect(post.cover_image).to be_present
-          expect(post.cover_image.local_path.exist?).to eq true
+            expect(post.cover_image).to be_present
+            expect(post.cover_image.local_path.exist?).to eq true
 
-          expect(post[:cover_image]).to eq 'dumb.jpg'
+            expect(post[:cover_image]).to eq 'dumb.jpg'
+          end
+        end
+
+        context "with custom name" do
+          it "stores the file" do
+            post = Post.create!
+
+            dumb = Rack::Test::UploadedFile.new(dumb_path)
+            post.cover_image.store(dumb, filename: "not_a_dumb.jpg")
+
+            expect(post.cover_image).to be_present
+            expect(post.cover_image.local_path.exist?).to eq true
+
+            expect(post[:cover_image]).to eq 'not_a_dumb.jpg'
+          end
         end
       end
 

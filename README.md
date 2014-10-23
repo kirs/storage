@@ -116,6 +116,10 @@ post.cover_photo.present?
 => false
 
 post.cover_photo.store(File.open('/var/www/somefile.jpg'))
+
+# or store with custom name:
+post.cover_photo.store(File.open('/var/www/somefile.jpg'), filename: 'photo.jpg')
+
 post.cover_photo.present?
 => true
 post.cover_photo.local_path

@@ -51,20 +51,20 @@ class Storage::Model
 
     Storage::Downloader.new(options).download(original_url, target)
 
-    store(target, original_url)
+    store(target, filename: original_url)
   ensure
     target.try(:unlink)
   end
 
-  def store(file, name = nil)
+  def store(file, filename: nil)
     unless file.respond_to?(:path)
-      raise ArgumentError.new("#store receives instance of class with `path` method")
+      raise ArgumentError.new("#store receives instance with `path` method")
     end
 
-    original_name = if file.respond_to?(:original_filename)
+    original_name = if filename.present?
+      filename
+    elsif file.respond_to?(:original_filename)
       file.original_filename
-    elsif name.present?
-      name
     else
       file.path
     end
@@ -78,6 +78,10 @@ class Storage::Model
     end
 
     update_model!
+  end
+
+  def store_locally(file, filename: nil)
+    store(file, filename: filename)
   end
 
   def transfer_to_remote
