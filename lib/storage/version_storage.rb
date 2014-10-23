@@ -43,6 +43,7 @@ class Storage::VersionStorage
   end
 
   def process(original_file = nil)
+    # TODO disable processing in tests
     return if @storage_model.value.blank?
 
     cached_original_file = original_file.present?
