@@ -466,7 +466,7 @@ describe Storage::Model do
       storage_model = OneMoreRemoteStorage.new(post, :cover_image)
       allow(storage_model).to receive(:remote_klass).and_return(AliasedRemote)
 
-      expect(storage_model.url(:big)).to eq 'http://storage.evl.ms/post/uploads/post/1/big/1.jpg?ts=123'
+      expect(storage_model.url(:big)).to eq 'http://storage.evl.ms/uploads/post/1/big/1.jpg?ts=123'
     end
   end
 
