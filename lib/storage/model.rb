@@ -133,7 +133,9 @@ class Storage::Model
   end
 
   def reprocess
-    return unless present?
+    if blank?
+      return
+    end
 
     original_file = versions[:original].file
 
