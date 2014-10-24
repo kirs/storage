@@ -16,8 +16,8 @@ describe Storage::VersionStorage do
     context "with local file" do
       let(:model) {
         mod = double(value: "1.jpg")
-        allow(mod).to receive(:model_uploads_path) { |version_name|
-          "uploads/public/#{version_name}"
+        allow(mod).to receive(:key) { |version_name, filename|
+          "uploads/public/#{version_name}/#{filename}"
         }
         mod
       }

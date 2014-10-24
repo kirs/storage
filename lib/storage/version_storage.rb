@@ -17,7 +17,7 @@ class Storage::VersionStorage
 
     if path.exist?
       FileUtils.rm path
-      FileUtils.rmdir Storage.storage_path.join(@storage_model.model_uploads_path(@version.name.to_s))
+      FileUtils.rmdir File.dirname(path)
     end
 
     clear_file_cache
@@ -93,7 +93,7 @@ class Storage::VersionStorage
   end
 
   def remote_key
-    File.join(upload_path, @storage_model.value)
+    @storage_model.key(@version.name.to_s, @storage_model.value)
   end
 
   def local_copy_exists?
@@ -102,10 +102,6 @@ class Storage::VersionStorage
 
   def local_path
     Storage.storage_path.join(remote_key)
-  end
-
-  def upload_path
-    @storage_model.model_uploads_path(@version.name.to_s)
   end
 
   private

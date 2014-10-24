@@ -11,7 +11,7 @@ class OneMoreRemoteStorage < Storage::Model
     end
   end
 
-  def model_uploads_path(version)
-    File.join("uploads", "post", @model.id.to_s, version)
+  def key(version, filename)
+    File.join("uploads", "post", @model.id.to_s, version, filename)
   end
 end
