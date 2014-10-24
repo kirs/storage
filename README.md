@@ -166,9 +166,21 @@ post.photo.url # returns your custom url instead of URL on amazonaws.com domain
 => //storage.yourcompany.com/uploads/post/1/big/1.jpg
 ```
 
-## jpegoptim & optipng
+## Optimizations with jpegoptim & optipng
 
-TODO
+Using [Piet](https://github.com/albertbellonch/piet), Storage can optimize your images with `jpegoptim` and `optipng`:
+
+```ruby
+class PhotoStorage < Storage::Model
+  include Storage::Helpers::OptimizeHelper
+
+  # declare versions...
+
+  def process_image(version, image)
+    optimize_with_piet(image)
+  end
+end
+```
 
 ## Contributing
 
