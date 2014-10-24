@@ -50,7 +50,7 @@ Storage.setup do |config|
   }
 
   # only if you use Amazon S3
-  config.bucket_name = 'my-app-bucket'
+  config.bucket_name = "my-app_#{Rails.env}"
 end
 ```
 
