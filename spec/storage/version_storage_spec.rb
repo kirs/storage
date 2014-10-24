@@ -15,11 +15,13 @@ describe Storage::VersionStorage do
   describe "#url" do
     context "with local file" do
       let(:model) {
-        double(value: "1.jpg", model_uploads_path: "uploads/public")
+        mod = double(value: "1.jpg")
+        allow(mod).to receive(:model_uploads_path) { |version_name|
+          "uploads/public/#{version_name}"
+        }
+        mod
       }
-      let(:version) {
-        double(name: "my_version", options: {foo: "var"})
-      }
+      let(:version) { double(name: "my_version", options: {foo: "var"}) }
 
       it "works" do
         version_storage = described_class.new(version, model)

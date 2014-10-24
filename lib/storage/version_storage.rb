@@ -17,7 +17,7 @@ class Storage::VersionStorage
 
     if path.exist?
       FileUtils.rm path
-      FileUtils.rmdir Storage.storage_path.join(@storage_model.model_uploads_path)
+      FileUtils.rmdir Storage.storage_path.join(@storage_model.model_uploads_path(@version.name.to_s))
     end
 
     clear_file_cache
@@ -105,7 +105,7 @@ class Storage::VersionStorage
   end
 
   def upload_path
-    File.join(@storage_model.model_uploads_path, @version.name.to_s)
+    @storage_model.model_uploads_path(@version.name.to_s)
   end
 
   private
