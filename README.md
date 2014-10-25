@@ -78,8 +78,9 @@ class CoverPhotoStorage < Storage::Model
   end
 
   # optionally: redefine to use custom uploads path
+  # default is: /uploads/:model_name/:id/:field/:version_name/:filename
   def key(version, filename)
-    File.join("uploads", @model.class.name.underscore, @model.id.to_s, version, filename)
+    File.join("uploads", model.class.name.underscore, model.id.to_s, field_name, version, filename)
   end
 end
 ```

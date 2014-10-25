@@ -3,7 +3,7 @@ class Storage::Model
 
   class_attribute :versions, instance_accessor: false
 
-  attr_reader :versions
+  attr_reader :versions, :model, :field_name
 
   def self.version(name, options = {})
     self.versions ||= []
@@ -103,7 +103,7 @@ class Storage::Model
   end
 
   def value
-    @basename.presence || @model[@field_name]
+    @basename.presence || @model[field_name]
   end
 
   def url(version_name = DEFAULT_VERSION_NAME)
@@ -149,7 +149,7 @@ class Storage::Model
   end
 
   def key(version, filename)
-    File.join("uploads", @model.class.name.underscore, @model.id.to_s, version, filename)
+    File.join("uploads", model.class.name.underscore, model.id.to_s, field_name, version, filename)
   end
 
   def remote
@@ -171,7 +171,7 @@ class Storage::Model
   end
 
   def update_model!
-    @model.update!(@field_name => @basename)
+    @model.update!(field_name => @basename)
   end
 
   def save_locally(target)
