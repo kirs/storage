@@ -20,6 +20,26 @@ describe Storage do
       end
     end
 
+    context "with russian chars" do
+      context "with extension" do
+        let(:url) { "мать и дитя.jpg" }
+
+        it "works" do
+          result = described_class.extract_basename(url)
+          expect(result).to eq "___________.jpg"
+        end
+      end
+
+      context "without extension" do
+        let(:url) { "мать и дитя" }
+
+        it "works" do
+          result = described_class.extract_basename(url)
+          expect(result).to eq "___________"
+        end
+      end
+    end
+
     context "with empty case" do
       let(:url) { "http://ebay-social-staging.s3.amazonaws.com/uploads/ebay_item/9/original/$,~~.jpg" }
 
@@ -36,6 +56,6 @@ describe Storage do
         result = described_class.extract_basename(url)
         expect(result).to eq "abc__.jpg"
       end
-    end    
+    end
   end
 end

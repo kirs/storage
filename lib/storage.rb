@@ -17,9 +17,12 @@ module Storage
     end
 
     def extract_basename(url)
-      uri = URI.parse(url.gsub(/[\[\]]/, '_'))
-
-      name = uri.path
+      begin
+        uri = URI.parse(url.gsub(/[\[\]]/, '_'))
+        name = uri.path
+      rescue URI::InvalidURIError
+        name = url
+      end
 
       extension = File.extname(name)
 
@@ -29,7 +32,6 @@ module Storage
       name = "_#{name}" if name =~ /\A\.+\z/
       name = "unnamed" if name.size == 0
       name = name.mb_chars
-
 
       "#{name}#{extension}".downcase
     end
