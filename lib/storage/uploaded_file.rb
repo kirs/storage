@@ -6,7 +6,7 @@ class Storage::UploadedFile
     @storage = storage
   end
 
-  delegate :path, :extname, to: :source_file
+  delegate :path, :extname, :read, :rewind, :eof?, to: :source_file
 
   def remote?
     @storage == :remote

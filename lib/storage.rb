@@ -8,15 +8,13 @@ module Storage
   SANITIZE_REGEXP = /[^a-zA-Z0-9\.\-\_\[\]]/
 
   class << self
-    attr_accessor :storage_path
-    attr_accessor :s3_credentials
-    attr_accessor :bucket_name
+    attr_accessor :storage_path, :s3_credentials, :bucket_name, :enable_processing
 
     def setup
       yield self
     end
 
-    def extract_basename(url)
+    def extract_filename(url)
       begin
         uri = URI.parse(url.gsub(/[\[\]]/, '_'))
         name = uri.path
@@ -35,22 +33,18 @@ module Storage
 
       "#{name}#{extension}".downcase
     end
+    alias_method :extract_basename, :extract_filename
   end
 end
 
 if defined?(Rails)
   module Storage
     class Railtie < Rails::Railtie
-      initializer "storage.setup_paths" do
+      initializer "storage.setup_defaults" do
         Storage.storage_path = Rails.root.join(Rails.public_path)
         Storage.bucket_name = Rails.application.engine_name
+        Storage.enable_processing = true
       end
-
-      # initializer "carrierwave.active_record" do
-      #   ActiveSupport.on_load :active_record do
-      #     require 'carrierwave/orm/activerecord'
-      #   end
-      # end
     end
   end
 end
@@ -63,3 +57,7 @@ require "storage/version"
 require "storage/version/opts_validator"
 require "storage/version_storage"
 require "storage/versions_resolver"
+require "storage/value"
+
+require "storage/serializers/json_serializer"
+require "storage/serializers/string_serializer"

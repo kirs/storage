@@ -1,4 +1,6 @@
 class Storage::VersionStorage
+  CHUNK_SIZE = 2**16
+
   def initialize(version, storage_model)
     @version = version
     @storage_model = storage_model
@@ -10,6 +12,22 @@ class Storage::VersionStorage
 
   def options
     @version.options
+  end
+
+  def storage_type
+    if local_copy_exists?
+      :local
+    else
+      :remote
+    end
+  end
+
+  def meta
+    if local_copy_exists?
+      { size: File.size(local_path) }
+    else
+      {}
+    end
   end
 
   def remove_local_copy
@@ -54,9 +72,16 @@ class Storage::VersionStorage
 
     filename = File.basename(local_path)
     extname = File.extname(local_path)
-    target_file = Tempfile.new([filename, extname], encoding: 'binary')
-    process_image(original_file, target_file)
 
+    target_file = Tempfile.new([filename, extname], encoding: 'binary')
+    # if @storage_model.class.enable_processing &&
+    if Storage.enable_processing
+      process_image(original_file, target_file)
+    else
+      target_file.write(original_file.read(CHUNK_SIZE)) until original_file.eof?
+    end
+
+    # original_file.rewind
     target_file.rewind
 
     if local_copy_exists?
@@ -80,9 +105,7 @@ class Storage::VersionStorage
   end
 
   def url(with_protocol: false)
-    value = @storage_model.value
-
-    return if value.blank?
+    return if @storage_model.blank?
 
     key = remote_key
     if local_copy_exists?
@@ -93,7 +116,7 @@ class Storage::VersionStorage
   end
 
   def remote_key
-    @storage_model.key(@version.name.to_s, @storage_model.value)
+    @storage_model.key(@version.name.to_s, @storage_model.filename)
   end
 
   def local_copy_exists?
@@ -102,6 +125,10 @@ class Storage::VersionStorage
 
   def local_path
     Storage.storage_path.join(remote_key)
+  end
+
+  def meta_enabled?
+    false
   end
 
   private

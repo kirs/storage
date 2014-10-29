@@ -3,12 +3,24 @@ class Storage::Model
 
   class_attribute :versions, instance_accessor: false
 
-  attr_reader :versions, :model, :field_name
+  attr_reader :versions, :model, :field_name, :filename
 
   def self.version(name, options = {})
     self.versions ||= []
     self.versions << Storage::Version.new(name, options)
   end
+
+  # def self.enable_processing=(val)
+  #   @enable_processing = val
+  # end
+
+  # def self.enable_processing
+  #   if defined?(@enable_processing)
+  #     @enable_processing
+  #   else
+  #     true
+  #   end
+  # end
 
   def self.store_remotely
     @store_remotely = true
@@ -16,6 +28,10 @@ class Storage::Model
 
   def self.store_remotely?
     !!@store_remotely
+  end
+
+  def filename
+    @filename.presence || value.filename
   end
 
   def initialize(model, field_name)
@@ -45,8 +61,8 @@ class Storage::Model
       end
     end
 
-    @basename = nil
-    update_model!
+    @filename = nil
+    @model.update!(field_name => nil)
   end
 
   def download(original_url, options = {})
@@ -77,7 +93,7 @@ class Storage::Model
       file.path
     end
 
-    @basename = Storage.extract_basename(original_name)
+    @filename = Storage.extract_filename(original_name)
     save_locally(file)
     reprocess
 
@@ -103,34 +119,29 @@ class Storage::Model
   end
 
   def value
-    @basename.presence || @model[field_name]
+    Storage::Value.new(model[field_name])
   end
+
+  delegate :present?, :blank?, to: :value
 
   def url(version_name = DEFAULT_VERSION_NAME)
     @versions[version_name].url || default_url(version_name)
   end
 
-  def present?
-    value.present?
-  end
 
   def default_url(version_name)
     "/default/#{self.class.to_s.underscore}/#{version_name}.png"
   end
 
-  def blank?
-    !present?
-  end
-
-  def as_json
-    if present?
-      Hash[@versions.map { |version_name, version_object|
-        [version_name, version_object.url]
-      }]
-    else
-      nil
-    end
-  end
+  # def as_json
+  #   if present?
+  #     Hash[@versions.map { |version_name, version_object|
+  #       [version_name, version_object.url]
+  #     }]
+  #   else
+  #     nil
+  #   end
+  # end
 
   def reprocess
     if blank?
@@ -171,7 +182,7 @@ class Storage::Model
   end
 
   def update_model!
-    @model.update!(field_name => @basename)
+    @model.update!(field_name => serializer.dump)
   end
 
   def save_locally(target)
@@ -186,5 +197,15 @@ class Storage::Model
     end
 
     FileUtils.chmod 0644, targets
+  end
+
+  def model_column_type
+    @model.class.columns_hash[@field_name.to_s].type
+  end
+
+  def serializer
+    @serializer ||= begin
+      Storage::Serializers.const_get("#{model_column_type.to_s.classify}Serializer").new(self)
+    end
   end
 end

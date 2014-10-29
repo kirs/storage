@@ -2,3 +2,8 @@ language: ruby
 rvm:
   - 2.0
   - 2.1
+env:
+  - STORAGE_COLUMN_TYPE=json
+  - STORAGE_COLUMN_TYPE=string
+before_script:
+  - psql -c 'create database storage_test;' -U postgres

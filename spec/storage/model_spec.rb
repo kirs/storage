@@ -22,7 +22,11 @@ describe Storage::Model do
   before(:all) do
     ActiveRecord::Migration.suppress_messages do
       ActiveRecord::Migration.create_table "posts", temporary: true do |t|
-        t.string :cover_image
+        if ENV['STORAGE_COLUMN_TYPE'] == "string"
+          t.string :cover_image
+        else
+          t.json :cover_image
+        end
       end
     end
   end
@@ -104,7 +108,7 @@ describe Storage::Model do
             expect(post.cover_image).to be_present
             expect(post.cover_image.local_path.exist?).to eq true
 
-            expect(post[:cover_image]).to eq 'dumb.jpg'
+            expect(post.cover_image.value.filename).to eq 'dumb.jpg'
           end
         end
 
@@ -118,7 +122,7 @@ describe Storage::Model do
             expect(post.cover_image).to be_present
             expect(post.cover_image.local_path.exist?).to eq true
 
-            expect(post[:cover_image]).to eq 'not_a_dumb.jpg'
+            expect(post.cover_image.value.filename).to eq 'not_a_dumb.jpg'
           end
         end
       end
@@ -134,7 +138,7 @@ describe Storage::Model do
             expect(post.cover_image).to be_present
             expect(post.cover_image.local_path.exist?).to eq true
 
-            expect(post[:cover_image]).to eq 'dumb.jpg'
+            expect(post.cover_image.value.filename).to eq 'dumb.jpg'
           end
         end
 
@@ -142,13 +146,13 @@ describe Storage::Model do
           it "cleanes up filename" do
             post = LocalPost.create!
 
-            allow(Storage).to receive(:extract_basename).and_return("1.jpg")
+            allow(Storage).to receive(:extract_filename).and_return("1.jpg")
 
             dumb = File.open(dumb_path)
             post.cover_image.store(dumb)
 
             expect(post.cover_image).to be_present
-            expect(post[:cover_image]).to eq '1.jpg'
+            expect(post.cover_image.value.filename).to eq '1.jpg'
           end
         end
       end
@@ -173,7 +177,7 @@ describe Storage::Model do
 
           expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg"
 
-          expect(post[:cover_image]).to eq 'dumb.jpg'
+          expect(post.cover_image.value.filename).to eq 'dumb.jpg'
         end
       end
     end
@@ -196,7 +200,7 @@ describe Storage::Model do
 
           post.cover_image.download(image_url)
 
-          expect(post[:cover_image]).to eq '1.jpg'
+          expect(post.cover_image.value.filename).to eq '1.jpg'
 
           expect(post.cover_image.present?).to eq true
 
@@ -216,7 +220,7 @@ describe Storage::Model do
             to_return(body: File.new(dumb_path), status: 200)
 
 
-          allow(Storage).to receive(:extract_basename).and_return("1.jpg")
+          allow(Storage).to receive(:extract_filename).and_return("1.jpg")
         end
 
         it "works" do
@@ -225,7 +229,7 @@ describe Storage::Model do
 
           post.cover_image.download(image_url)
 
-          expect(post[:cover_image]).to eq "1.jpg"
+          expect(post.cover_image.value.filename).to eq "1.jpg"
 
           expect(post.cover_image.present?).to eq true
 
@@ -286,7 +290,7 @@ describe Storage::Model do
 
         post.reload
 
-        expect(post[:cover_image]).to eq '1.jpg'
+        expect(post.cover_image.value.filename).to eq '1.jpg'
         expect(post.cover_image.present?).to eq true
         expect(post.cover_image.local_path.exist?).to eq false
 
@@ -297,7 +301,7 @@ describe Storage::Model do
 
   describe "#remove" do
     context "remote upload" do
-      let(:post) { RemotePost.create!(cover_image: '1.jpg') }
+      let(:post) { create_model_with_file(RemotePost, :cover_image, '1.jpg') }
 
       before do
         stub_request(:head, "https://#{Storage.bucket_name}.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg").to_return(status: 200)
@@ -314,14 +318,14 @@ describe Storage::Model do
 
         post.cover_image.remove
 
-        expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/1/original/1.jpg")).to have_been_made.once
+        expect(a_request(:delete, "https://teamnavalny.s3-eu-west-1.amazonaws.com/uploads/post/#{post.id}/original/1.jpg")).to have_been_made.once
 
         expect(post.cover_image.present?).to eq false
       end
     end
 
     context "local upload" do
-      let(:post) { LocalPost.create!(cover_image: '1.jpg') }
+      let(:post) { create_model_with_file(LocalPost, :cover_image, '1.jpg') }
 
       before do
         path = post.cover_image.local_path
@@ -354,7 +358,7 @@ describe Storage::Model do
 
     context "not existing version" do
       it "throws exception" do
-        post = LocalPost.create!(cover_image: filename)
+        post = create_model_with_file(LocalPost, :cover_image, filename)
 
         expect {
           post.cover_image.url(:somewhat)
@@ -364,7 +368,7 @@ describe Storage::Model do
 
     context "local upload" do
       it "works" do
-        post = LocalPost.create!(cover_image: filename)
+        post = create_model_with_file(LocalPost, :cover_image, filename)
 
         allow(post.cover_image.versions[:original]).to receive(:local_copy_exists?).and_return(true)
         expect(post.cover_image.url).to eq "/uploads/post/#{post.id}/original/#{filename}"
@@ -373,38 +377,38 @@ describe Storage::Model do
 
     context "remote upload" do
       it "works" do
-        post = RemotePost.create!(cover_image: filename)
+        post = create_model_with_file(RemotePost, :cover_image, filename)
         expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
         expect(post.cover_image.url(:big)).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/big/#{filename}"
       end
     end
   end
 
-  describe "#as_json" do
-    let(:filename) { '1.jpg' }
+  # describe "#as_json" do
+  #   let(:filename) { '1.jpg' }
 
-    context "file present" do
-      it "works" do
-        post = LocalPost.create!(cover_image: filename)
+  #   context "file present" do
+  #     it "works" do
+  #       post = create_model_with_file(LocalPost, :cover_image, filename })
 
-        urls = {
-          original: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
-          thumb: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/thumb/1.jpg",
-          big: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/big/1.jpg"
-        }
+  #       urls = {
+  #         original: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/original/1.jpg",
+  #         thumb: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/thumb/1.jpg",
+  #         big: "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/1/big/1.jpg"
+  #       }
 
-        expect(post.cover_image.as_json).to eq urls
-      end
-    end
+  #       expect(post.cover_image.as_json).to eq urls
+  #     end
+  #   end
 
-    context "file absent" do
-      it "works" do
-        post = LocalPost.create!
+  #   context "file absent" do
+  #     it "works" do
+  #       post = LocalPost.create!
 
-        expect(post.cover_image.as_json).to eq nil
-      end
-    end
-  end
+  #       expect(post.cover_image.as_json).to eq nil
+  #     end
+  #   end
+  # end
 
   describe "#reprocess" do
     let(:image_url) { "http://putin.vor/1.jpg" }
@@ -415,7 +419,7 @@ describe Storage::Model do
       end
 
       it "works" do
-        post = LocalPost.create!(cover_image: '1.jpg')
+        post = create_model_with_file(LocalPost, :cover_image, '1.jpg')
 
         expect(post.cover_image.present?).to eq true
 
@@ -446,7 +450,7 @@ describe Storage::Model do
 
   describe "#versions" do
     it "are present" do
-      post = LocalPost.create!(cover_image: '1.jpg')
+      post = create_model_with_file(LocalPost, :cover_image, '1.jpg')
       versions = post.cover_image.versions
       expect(versions).to be_present
 
@@ -458,11 +462,11 @@ describe Storage::Model do
 
   describe "#remote_klass" do
     it "works with custom Remote" do
-      post = RemotePost.create!(cover_image: '1.jpg')
+      post = create_model_with_file(RemotePost, :cover_image, '1.jpg')
       storage_model = OneMoreRemoteStorage.new(post, :cover_image)
       allow(storage_model).to receive(:remote_klass).and_return(AliasedRemote)
 
-      expect(storage_model.url(:big)).to eq 'http://storage.evl.ms/uploads/post/1/big/1.jpg?ts=123'
+      expect(storage_model.url(:big)).to eq "http://storage.evl.ms/uploads/post/#{post.id}/big/1.jpg?ts=123"
     end
   end
 

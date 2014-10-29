@@ -11,11 +11,13 @@ require 'rack/test'
 
 Dir[File.join(Dir.pwd, 'spec/support/**/*.rb')].each{ |f| require f }
 
-ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
+ActiveRecord::Base.establish_connection(adapter: 'postgresql', database: 'storage_test')
 
 DatabaseCleaner.strategy = :transaction
 
 I18n.enforce_available_locales
+
+Storage.enable_processing = true
 
 WebMock.disable_net_connect!(allow: %w{codeclimate.com})
 
@@ -39,6 +41,7 @@ RSpec.configure do |config|
   end
 
   config.include UploadFixtureHelper
+  config.include FixtureHelper
 
   config.order = "random"
 

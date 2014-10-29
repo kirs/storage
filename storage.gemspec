@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'database_cleaner', '>= 1.2.0'
   spec.add_development_dependency 'timecop'
   spec.add_development_dependency 'webmock'
-  spec.add_development_dependency 'sqlite3'
+  spec.add_development_dependency 'pg'
   spec.add_development_dependency 'rack-test'
 
   spec.add_dependency "aws-sdk", "~> 1.0"
