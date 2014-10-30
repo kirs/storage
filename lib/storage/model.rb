@@ -1,38 +1,48 @@
 class Storage::Model
   DEFAULT_VERSION_NAME = :original
 
-  class_attribute :versions, instance_accessor: false
-
   attr_reader :versions, :model, :field_name, :filename
 
-  def self.version(name, options = {})
-    self.versions ||= []
-    self.versions << Storage::Version.new(name, options)
+  module DSL
+    def version(name, options = {})
+      @versions ||= []
+      @versions << Storage::Version.new(name, options)
+    end
+
+    def versions
+      @versions
+    end
+
+    # def self.enable_processing=(val)
+    #   @enable_processing = val
+    # end
+
+    # def self.enable_processing
+    #   if defined?(@enable_processing)
+    #     @enable_processing
+    #   else
+    #     true
+    #   end
+    # end
+
+    def store_remotely
+      @store_remotely = true
+    end
+
+    def store_remotely?
+      !!@store_remotely
+    end
+
+    def remote_klass
+      @remote_klass || Storage::Remote
+    end
+
+    def use_remote(remote_klass)
+      @remote_klass = remote_klass
+    end
   end
 
-  # def self.enable_processing=(val)
-  #   @enable_processing = val
-  # end
-
-  # def self.enable_processing
-  #   if defined?(@enable_processing)
-  #     @enable_processing
-  #   else
-  #     true
-  #   end
-  # end
-
-  def self.store_remotely
-    @store_remotely = true
-  end
-
-  def self.store_remotely?
-    !!@store_remotely
-  end
-
-  def filename
-    @filename.presence || value.filename
-  end
+  extend DSL
 
   def initialize(model, field_name)
     unless model.persisted?
@@ -104,6 +114,10 @@ class Storage::Model
     update_model!
   end
 
+  def filename
+    @filename.presence || value.filename
+  end
+
   def store_locally(file, filename: nil)
     store(file, filename: filename)
   end
@@ -121,13 +135,11 @@ class Storage::Model
   def value
     Storage::Value.new(model[field_name])
   end
-
   delegate :present?, :blank?, to: :value
 
   def url(version_name = DEFAULT_VERSION_NAME)
     @versions[version_name].url || default_url(version_name)
   end
-
 
   def default_url(version_name)
     "/default/#{self.class.to_s.underscore}/#{version_name}.png"
@@ -144,9 +156,7 @@ class Storage::Model
   # end
 
   def reprocess
-    if blank?
-      return
-    end
+    return if blank?
 
     original_file = versions[:original].file
 
@@ -161,14 +171,6 @@ class Storage::Model
 
   def key(version, filename)
     File.join("uploads", model.class.name.underscore, model.id.to_s, field_name, version, filename)
-  end
-
-  def remote
-    @remote ||= remote_klass.new
-  end
-
-  def remote_klass
-    ::Storage::Remote
   end
 
   def process_image(version, image)

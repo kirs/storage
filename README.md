@@ -155,9 +155,7 @@ class PhotoStorage < Storage::Model
   version :original
   version :big
 
-  def remote_klass
-    CustomRemote
-  end
+  use_remote CustomRemote
 end
 ```
 

@@ -461,10 +461,13 @@ describe Storage::Model do
   end
 
   describe "#remote_klass" do
+    before do
+      allow(OneMoreRemoteStorage).to receive(:remote_klass).and_return(AliasedRemote)
+    end
+
     it "works with custom Remote" do
       post = create_model_with_file(RemotePost, :cover_image, '1.jpg')
       storage_model = OneMoreRemoteStorage.new(post, :cover_image)
-      allow(storage_model).to receive(:remote_klass).and_return(AliasedRemote)
 
       expect(storage_model.url(:big)).to eq "http://storage.evl.ms/uploads/post/#{post.id}/big/1.jpg?ts=123"
     end

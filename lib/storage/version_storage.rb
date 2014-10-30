@@ -42,7 +42,7 @@ class Storage::VersionStorage
   end
 
   def remove_remote_copy
-    @storage_model.remote.remove_file(remote_key)
+    remote.remove_file(remote_key)
     clear_file_cache
   end
 
@@ -88,8 +88,8 @@ class Storage::VersionStorage
       FileUtils.rm(local_path)
       FileUtils.cp target_file.path, local_path
     else
-      @storage_model.remote.remove_file(remote_key) # optional, maybe replace
-      @storage_model.remote.transfer_from(target_file, remote_key)
+      remote.remove_file(remote_key) # optional, maybe replace
+      remote.transfer_from(target_file, remote_key)
     end
 
   ensure
@@ -100,7 +100,7 @@ class Storage::VersionStorage
   end
 
   def transfer_to_remote
-    @storage_model.remote.transfer_from(local_path, remote_key)
+    remote.transfer_from(local_path, remote_key)
     remove_local_copy
   end
 
@@ -111,7 +111,7 @@ class Storage::VersionStorage
     if local_copy_exists?
       "/#{key}"
     else
-      @storage_model.remote.url_for(key, with_protocol: with_protocol)
+      remote.url_for(key, with_protocol: with_protocol)
     end
   end
 
@@ -145,5 +145,9 @@ class Storage::VersionStorage
 
   def clear_file_cache
     @file = nil
+  end
+
+  def remote
+    @remote ||= @storage_model.class.remote_klass.new
   end
 end
