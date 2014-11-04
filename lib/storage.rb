@@ -58,6 +58,7 @@ require "storage/version/opts_validator"
 require "storage/version_storage"
 require "storage/versions_resolver"
 require "storage/value"
+require "storage/configuration"
 
 require "storage/serializers/json_serializer"
 require "storage/serializers/string_serializer"

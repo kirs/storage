@@ -462,7 +462,7 @@ describe Storage::Model do
 
   describe "#remote_klass" do
     before do
-      allow(OneMoreRemoteStorage).to receive(:remote_klass).and_return(AliasedRemote)
+      allow(OneMoreRemoteStorage.configuration).to receive(:remote_klass).and_return(AliasedRemote)
     end
 
     it "works with custom Remote" do

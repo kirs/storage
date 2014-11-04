@@ -128,7 +128,7 @@ class Storage::VersionStorage
   end
 
   def meta_enabled?
-    false
+    @storage_model.class.configuration.meta_enabled?
   end
 
   private
@@ -148,6 +148,6 @@ class Storage::VersionStorage
   end
 
   def remote
-    @remote ||= @storage_model.class.remote_klass.new
+    @remote ||= @storage_model.class.configuration.remote_klass.new
   end
 end

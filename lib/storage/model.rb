@@ -3,46 +3,22 @@ class Storage::Model
 
   attr_reader :versions, :model, :field_name, :filename
 
-  module DSL
-    def version(name, options = {})
-      @versions ||= []
-      @versions << Storage::Version.new(name, options)
-    end
-
-    def versions
-      @versions
-    end
-
-    # def self.enable_processing=(val)
-    #   @enable_processing = val
-    # end
-
-    # def self.enable_processing
-    #   if defined?(@enable_processing)
-    #     @enable_processing
-    #   else
-    #     true
-    #   end
-    # end
-
-    def store_remotely
-      @store_remotely = true
-    end
-
-    def store_remotely?
-      !!@store_remotely
-    end
-
-    def remote_klass
-      @remote_klass || Storage::Remote
-    end
-
-    def use_remote(remote_klass)
-      @remote_klass = remote_klass
-    end
+  def self.version(name, options = {})
+    @versions ||= []
+    @versions << Storage::Version.new(name, options)
   end
 
-  extend DSL
+  def self.versions
+    @versions
+  end
+
+  def self.configure(&blk)
+    configuration.instance_eval(&blk)
+  end
+
+  def self.configuration
+    @configuration ||= Storage::Configuration.new#(self.class)
+  end
 
   def initialize(model, field_name)
     unless model.persisted?
@@ -63,10 +39,11 @@ class Storage::Model
   end
 
   def remove
+    # TODO RemoveOperation
     @versions.each do |version_name, version_object|
       version_object.remove_local_copy
 
-      if self.class.store_remotely? && !skip_remote_storage?
+      if self.class.configuration.store_remotely? && !skip_remote_storage?
         version_object.remove_remote_copy
       end
     end
@@ -107,7 +84,7 @@ class Storage::Model
     save_locally(file)
     reprocess
 
-    if self.class.store_remotely? && !skip_remote_storage?
+    if self.class.configuration.store_remotely? && !skip_remote_storage?
       transfer_to_remote
     end
 
@@ -156,6 +133,8 @@ class Storage::Model
   # end
 
   def reprocess
+    # TODO ReprocessOperation
+
     return if blank?
 
     original_file = versions[:original].file
