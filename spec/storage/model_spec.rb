@@ -106,7 +106,7 @@ describe Storage::Model do
             post.cover_image.store(dumb)
 
             expect(post.cover_image).to be_present
-            expect(post.cover_image.local_path.exist?).to eq true
+            expect(File.exists?(post.cover_image.local_path)).to eq true
 
             expect(post.cover_image.value.filename).to eq 'dumb.jpg'
           end
@@ -120,7 +120,7 @@ describe Storage::Model do
             post.cover_image.store(dumb, filename: "not_a_dumb.jpg")
 
             expect(post.cover_image).to be_present
-            expect(post.cover_image.local_path.exist?).to eq true
+            expect(File.exists?(post.cover_image.local_path)).to eq true
 
             expect(post.cover_image.value.filename).to eq 'not_a_dumb.jpg'
           end
@@ -136,7 +136,7 @@ describe Storage::Model do
             post.cover_image.store(dumb)
 
             expect(post.cover_image).to be_present
-            expect(post.cover_image.local_path.exist?).to eq true
+            expect(File.exists?(post.cover_image.local_path)).to eq true
 
             expect(post.cover_image.value.filename).to eq 'dumb.jpg'
           end
@@ -173,7 +173,7 @@ describe Storage::Model do
           post.cover_image.store(dumb)
 
           expect(post.cover_image).to be_present
-          expect(post.cover_image.local_path.exist?).to eq false
+          expect(post.cover_image.local_path).to eq nil
 
           expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/dumb.jpg"
 
@@ -204,7 +204,7 @@ describe Storage::Model do
 
           expect(post.cover_image.present?).to eq true
 
-          expect(post.cover_image.local_path.exist?).to eq true
+          expect(File.exists?(post.cover_image.local_path)).to eq true
 
           post.cover_image.versions.each do |_, version|
             expect(version.local_path.exist?).to eq true
@@ -233,7 +233,7 @@ describe Storage::Model do
 
           expect(post.cover_image.present?).to eq true
 
-          expect(post.cover_image.local_path.exist?).to eq true
+          expect(File.exists?(post.cover_image.local_path)).to eq true
 
           post.cover_image.versions.each do |_, version|
             expect(version.local_path.exist?).to eq true
@@ -292,7 +292,7 @@ describe Storage::Model do
 
         expect(post.cover_image.value.filename).to eq '1.jpg'
         expect(post.cover_image.present?).to eq true
-        expect(post.cover_image.local_path.exist?).to eq false
+        expect(post.cover_image.local_path).to eq nil
 
         expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/1.jpg"
       end
@@ -328,9 +328,12 @@ describe Storage::Model do
       let(:post) { create_model_with_file(LocalPost, :cover_image, '1.jpg') }
 
       before do
-        path = post.cover_image.local_path
-        FileUtils.mkdir_p File.dirname(path)
-        FileUtils.cp(fixture_upload('dumb.jpg'), path)
+        post.cover_image.versions.each do |name, version|
+          path = version.local_path
+
+          FileUtils.mkdir_p File.dirname(path)
+          FileUtils.cp(fixture_upload('dumb.jpg'), path)
+        end
       end
 
       it "can be removed" do
@@ -366,16 +369,16 @@ describe Storage::Model do
       end
     end
 
-    context "local upload" do
+    context "existing local file" do
       it "works" do
         post = create_model_with_file(LocalPost, :cover_image, filename)
 
-        allow(post.cover_image.versions[:original]).to receive(:local_copy_exists?).and_return(true)
+        # allow(post.cover_image.versions[:original]).to receive(:local_copy_exists?).and_return(true)
         expect(post.cover_image.url).to eq "/uploads/post/#{post.id}/original/#{filename}"
       end
     end
 
-    context "remote upload" do
+    context "existing remote file" do
       it "works" do
         post = create_model_with_file(RemotePost, :cover_image, filename)
         expect(post.cover_image.url).to eq "//#{Storage.bucket_name}.s3.amazonaws.com/uploads/post/#{post.id}/original/#{filename}"
@@ -462,7 +465,7 @@ describe Storage::Model do
 
   describe "#remote_klass" do
     before do
-      allow(OneMoreRemoteStorage.configuration).to receive(:remote_klass).and_return(AliasedRemote)
+      allow(OneMoreRemoteStorage).to receive(:storage_klass).and_return(AliasedRemote)
     end
 
     it "works with custom Remote" do

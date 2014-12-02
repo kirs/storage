@@ -42,7 +42,7 @@ if defined?(Rails)
     class Railtie < Rails::Railtie
       initializer "storage.setup_defaults" do
         Storage.storage_path = Rails.root.join(Rails.public_path)
-        Storage.bucket_name = Rails.application.engine_name
+        Storage.bucket_name ||= Rails.application.engine_name
         Storage.enable_processing = true
       end
     end
@@ -51,7 +51,6 @@ end
 
 require "storage/model"
 require "storage/uploaded_file"
-require "storage/remote"
 require "storage/downloader"
 require "storage/version"
 require "storage/version/opts_validator"
@@ -59,6 +58,8 @@ require "storage/version_storage"
 require "storage/versions_resolver"
 require "storage/value"
 require "storage/configuration"
+require "storage/storages/local_storage"
+require "storage/storages/remote_storage"
 
 require "storage/serializers/json_serializer"
 require "storage/serializers/string_serializer"

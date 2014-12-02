@@ -3,9 +3,7 @@ class OneMoreRemoteStorage < Storage::Model
   version :thumb, size: "200x200"
   version :big, size: "300x300"
 
-  configure do
-    store_remotely
-  end
+  use_storage Storage::Storages::RemoteStorage
 
   def process_image(version, image)
     if version.options[:size].present?

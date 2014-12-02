@@ -17,7 +17,7 @@ module Storage::Serializers
       versions_t = @storage_model.versions.map do |_, v|
         options = {
           key: v.remote_key,
-          storage: v.storage_type
+          # storage: v.class
         }
 
         if v.meta_enabled?

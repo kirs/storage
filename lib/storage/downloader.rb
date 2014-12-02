@@ -1,6 +1,7 @@
 require 'httparty'
 
 module Storage
+  # HTTParty is used to follow https redirects
   class Downloader
     def initialize(options = nil)
       @options = options || self.class.options || {}
@@ -28,8 +29,8 @@ module Storage
     class << self
       attr_accessor :options
     end
-    @options = { follow_redirects: true }    
-  end  
+    @options = { follow_redirects: true }
+  end
 
   UNSAFE_URL_CHARS = '<>{}|\\^~[]`#'
 end

@@ -12,12 +12,32 @@ class Storage::Model
     @versions
   end
 
-  def self.configure(&blk)
-    configuration.instance_eval(&blk)
+  def self.use_storage(storage_klass_or_alias)
+    if storage_klass_or_alias.is_a?(Symbol)
+      @storage_klass = storage_klass_from_alias(storage_klass_or_alias)
+    else
+      @storage_klass = storage_klass_or_alias
+    end
   end
 
-  def self.configuration
-    @configuration ||= Storage::Configuration.new#(self.class)
+  def self.storage_klass
+    @storage_klass || Storage::Storages::LocalStorage
+  end
+
+  def storage
+    @storage ||= self.class.storage_klass.new
+  end
+
+  def move_to_storage(storage_klass_or_alias)
+    # TODO
+  end
+
+  def enable_meta
+    @meta_enabled = true
+  end
+
+  def meta_enabled?
+    @meta_enabled
   end
 
   def initialize(model, field_name)
@@ -30,26 +50,20 @@ class Storage::Model
     @versions = Storage::VersionsResolver.new(self, self.class.versions)
   end
 
-  def skip_remote_storage?
-    if defined?(Rails)
-      (Rails.env.development? || Rails.env.test?)
-    else
-      false
-    end
-  end
-
   def remove
-    # TODO RemoveOperation
     @versions.each do |version_name, version_object|
-      version_object.remove_local_copy
-
-      if self.class.configuration.store_remotely? && !skip_remote_storage?
-        version_object.remove_remote_copy
-      end
+      storage.remove(version_object.remote_key)
     end
 
     @filename = nil
     @model.update!(field_name => nil)
+  end
+
+  # legacy
+  def local_path
+    if self.class.storage_klass == Storage::Storages::LocalStorage
+      storage.build_local_path(versions[:original].remote_key)
+    end
   end
 
   def download(original_url, options = {})
@@ -81,12 +95,21 @@ class Storage::Model
     end
 
     @filename = Storage.extract_filename(original_name)
-    save_locally(file)
-    reprocess
 
-    if self.class.configuration.store_remotely? && !skip_remote_storage?
-      transfer_to_remote
+    versions.each do |version_name, version_object|
+      if processing_required?
+        begin
+          result = version_object.process(file)
+          storage.save(version_object.remote_key, result)
+        ensure
+          result.try(:unlink)
+        end
+      else
+        storage.save(version_object.remote_key, file)
+      end
     end
+
+    # reprocess
 
     update_model!
   end
@@ -95,27 +118,17 @@ class Storage::Model
     @filename.presence || value.filename
   end
 
-  def store_locally(file, filename: nil)
-    store(file, filename: filename)
-  end
-
-  def transfer_to_remote
-    @versions.each do |_, version|
-      version.transfer_to_remote
-    end
-  end
-
-  def local_path
-    @versions[DEFAULT_VERSION_NAME].local_path
-  end
-
   def value
     Storage::Value.new(model[field_name])
   end
   delegate :present?, :blank?, to: :value
 
   def url(version_name = DEFAULT_VERSION_NAME)
-    @versions[version_name].url || default_url(version_name)
+    if present?
+      storage.build_url(@versions[version_name].remote_key)
+    else
+     default_url(version_name)
+   end
   end
 
   def default_url(version_name)
@@ -133,18 +146,13 @@ class Storage::Model
   # end
 
   def reprocess
-    # TODO ReprocessOperation
-
     return if blank?
 
-    original_file = versions[:original].file
-
-    @versions.values.each do |version|
-      version.process(original_file)
-    end
-
-    if original_file.remote?
-      original_file.unlink
+    storage.cached_copy(versions[:original].remote_key) do |file|
+      versions.each do |version_name, version_object|
+        result = version.process(original_file)
+        # replace existing with result
+      end
     end
   end
 
@@ -152,33 +160,12 @@ class Storage::Model
     File.join("uploads", model.class.name.underscore, model.id.to_s, field_name, version, filename)
   end
 
-  def process_image(version, image)
-    raise NotImplementedError
-  end
-
   private
-
-  def local_copy_exists?
-    local_path.exist?
-  end
 
   def update_model!
     @model.update!(field_name => serializer.dump)
   end
 
-  def save_locally(target)
-    @versions.each do |_, version_object|
-      path = version_object.local_path
-      FileUtils.mkdir_p File.dirname(path)
-      FileUtils.cp target.path, path
-    end
-
-    targets = @versions.map do |_, version_object|
-      version_object.local_path.to_s
-    end
-
-    FileUtils.chmod 0644, targets
-  end
 
   def model_column_type
     @model.class.columns_hash[@field_name.to_s].type
@@ -186,7 +173,28 @@ class Storage::Model
 
   def serializer
     @serializer ||= begin
-      Storage::Serializers.const_get("#{model_column_type.to_s.classify}Serializer").new(self)
+      serializer_klass.new(self)
     end
+  end
+
+  def serializer_klass
+    Storage::Serializers.const_get("#{model_column_type.to_s.classify}Serializer")
+  end
+
+  class UnknownStorageAliasError < StandardError; end
+
+  def storage_klass_from_alias(klass_alias)
+    case klass_alias
+    when :remote
+      Storage::Storages::RemoteStorage
+    when :local
+      Storage::Storages::LocalStorage
+    else
+      raise UnknownStorageAliasError.new("unknown storage alias: #{klass_alias}")
+    end
+  end
+
+  def processing_required?
+    respond_to?(:process_image)
   end
 end
