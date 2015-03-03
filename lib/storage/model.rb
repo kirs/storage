@@ -94,8 +94,8 @@ class Storage::Model
     @basename.presence || @model[@field_name]
   end
 
-  def url(version_name = DEFAULT_VERSION_NAME)
-    @versions[version_name].url || default_url(version_name)
+  def url(version_name = DEFAULT_VERSION_NAME, with_protocol: false)
+    @versions[version_name].url(with_protocol: with_protocol) || default_url(version_name)
   end
 
   def present?
